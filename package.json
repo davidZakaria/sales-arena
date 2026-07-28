@@ -11,6 +11,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:patch-director": "tsx scripts/patch-director-name.ts",
     "import:legacy": "tsx scripts/import-legacy-data.ts",
     "db:reset": "prisma migrate reset --force",
     "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev",

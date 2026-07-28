@@ -29,7 +29,7 @@ Password for all seeded users: `brm123456`
 | Sales (Primary) | tantawy@newjerseyegypt.com | Owns most assigned agencies |
 | Sales (Co-Pilot / Disputes) | karim@newjerseyegypt.com | Co-pilot on Aqar Misr; disputed Nile Brokers |
 | Manager | reem@newjerseyegypt.com | Manager Dashboard → resolve disputes |
-| Director | maya@newjerseyegypt.com | Same manager tools as Reem |
+| Director | maya@newjerseyegypt.com (Mohamed Adel) | Same manager tools as Reem |
 
 ### Seed scenarios
 
