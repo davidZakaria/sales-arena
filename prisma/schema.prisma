@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  SALES
+  MANAGER
+  DIRECTOR
+}
+
+enum AgencyStatus {
+  ASSIGNED
+  OPEN_RACE
+}
+
+enum ContractStatus {
+  PENDING
+  SIGNED
+  MISSING
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  managerId    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  manager         User?      @relation("UserHierarchy", fields: [managerId], references: [id])
+  reports         User[]     @relation("UserHierarchy")
+  primaryAgencies Agency[]   @relation("PrimaryOwner")
+  sharedAgencies  Agency[]   @relation("AgencyCoOwners")
+  auditLogs       AuditLog[]
+
+  @@index([managerId])
+  @@index([role])
+}
+
+model Agency {
+  id                 String         @id @default(cuid())
+  name               String
+  type               String?
+  commercialRegister String?
+  taxId              String?
+  whatsappLink       String?
+  location           String?
+  repPhone1          String?
+  status             AgencyStatus
+  primaryOwnerId     String?
+  contractStatus     ContractStatus
+  isDisputed         Boolean        @default(false)
+  claimedAt          DateTime?
+  claimExpiresAt     DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  primaryOwner User?      @relation("PrimaryOwner", fields: [primaryOwnerId], references: [id])
+  coOwners     User[]     @relation("AgencyCoOwners")
+  auditLogs    AuditLog[]
+
+  @@index([status])
+  @@index([primaryOwnerId])
+  @@index([contractStatus])
+  @@index([claimExpiresAt])
+  @@index([isDisputed])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  agencyId  String
+  userId    String
+  action    String
+  createdAt DateTime @default(now())
+
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([agencyId])
+  @@index([userId])
+  @@index([createdAt])
+}
