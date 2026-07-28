@@ -35,6 +35,7 @@ export function Topbar() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult>({ users: [], agencies: [] });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -56,17 +57,27 @@ export function Topbar() {
     const controller = new AbortController();
 
     const timeout = window.setTimeout(async () => {
-      const params = new URLSearchParams();
-      if (query.trim()) {
-        params.set("q", query.trim());
-      }
+      setLoading(true);
 
-      const response = await fetch(`/api/search?${params.toString()}`, {
-        signal: controller.signal,
-      });
+      try {
+        const params = new URLSearchParams();
+        if (query.trim()) {
+          params.set("q", query.trim());
+        }
 
-      if (response.ok) {
-        setResults(await response.json());
+        const response = await fetch(`/api/search?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
+        if (response.ok) {
+          setResults(await response.json());
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error("Search failed:", error);
+        }
+      } finally {
+        setLoading(false);
       }
     }, 200);
 
@@ -132,14 +143,30 @@ export function Topbar() {
         </DropdownMenu>
       </header>
 
-      <CommandDialog open={open} onOpenChange={setOpen} title="Omni Search">
+      <CommandDialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) {
+            setQuery("");
+          }
+        }}
+        title="Omni Search"
+        shouldFilter={false}
+      >
         <CommandInput
           placeholder="Search by name, email, or agency…"
           value={query}
           onValueChange={setQuery}
         />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
+          {loading ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              Searching…
+            </div>
+          ) : (
+            <CommandEmpty>No results found.</CommandEmpty>
+          )}
           {results.users.length > 0 && (
             <CommandGroup heading="Users">
               {results.users.map((user) => (
