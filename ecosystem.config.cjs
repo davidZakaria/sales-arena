@@ -8,10 +8,13 @@
 const path = require("path");
 const fs = require("fs");
 
-// Load .env so DATABASE_URL, NEXTAUTH_*, etc. are available to the app
-const envPath = path.join(__dirname, ".env");
-if (fs.existsSync(envPath)) {
-  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+function loadEnvFile(filePath) {
+  const env = {};
+  if (!fs.existsSync(filePath)) {
+    return env;
+  }
+
+  for (const line of fs.readFileSync(filePath, "utf8").split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
 
@@ -28,20 +31,22 @@ if (fs.existsSync(envPath)) {
       value = value.slice(1, -1);
     }
 
-    if (!(key in process.env)) {
-      process.env[key] = value;
-    }
+    env[key] = value;
   }
+
+  return env;
 }
+
+const fileEnv = loadEnvFile(path.join(__dirname, ".env"));
 
 module.exports = {
   apps: [
     {
       name: "sales-arena",
       cwd: __dirname,
-      script: path.join(__dirname, "node_modules/next/dist/bin/next"),
-      interpreter: "node",
-      args: "start -p 3005",
+      script: "npm",
+      args: "run start:prod",
+      interpreter: "none",
       instances: 1,
       exec_mode: "fork",
       autorestart: true,
@@ -51,7 +56,7 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: "3005",
-        ...process.env,
+        ...fileEnv,
       },
     },
   ],
