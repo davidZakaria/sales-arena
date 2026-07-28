@@ -173,12 +173,23 @@ export function Topbar() {
                 <CommandItem
                   key={user.id}
                   value={`${user.name} ${user.email}`}
-                  onSelect={() => navigate(`/dashboard?user=${user.id}`)}
+                  onSelect={() =>
+                    navigate(
+                      user.id === session?.user?.id
+                        ? "/dashboard"
+                        : `/dashboard?user=${user.id}`,
+                    )
+                  }
                 >
                   <UserRound className="mr-2 h-4 w-4" />
                   <div>
                     <p>{user.name}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {user.email}
+                      {user.role !== "SALES" && (
+                        <span className="ml-1 uppercase">· {user.role}</span>
+                      )}
+                    </p>
                   </div>
                 </CommandItem>
               ))}

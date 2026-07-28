@@ -1,9 +1,14 @@
 import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, X } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { userAgencyAccessFilter } from "@/lib/agency/queries";
+import {
+  canViewUserPortfolio,
+  userAgencyAccessFilter,
+} from "@/lib/agency/queries";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,45 +22,70 @@ import {
 } from "@/components/ui/table";
 import { ContractStatusBadge } from "@/components/agency/badges";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ user?: string }>;
+}) {
   const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
+  const { user: targetUserId } = await searchParams;
+  const viewerId = session?.user?.id;
+  const viewerRole = session?.user?.role;
 
-  const [assignedCount, openRaceCount, missingContracts, missingDocs, myAgencies] =
+  if (!viewerId || !viewerRole) {
+    redirect("/login");
+  }
+
+  let subjectUserId = viewerId;
+  let subjectName = session.user.name ?? "You";
+  let viewingOtherUser = false;
+
+  if (targetUserId && targetUserId !== viewerId) {
+    if (!canViewUserPortfolio(viewerRole, viewerId, targetUserId)) {
+      redirect("/dashboard");
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, name: true, role: true },
+    });
+
+    if (!targetUser) {
+      notFound();
+    }
+
+    subjectUserId = targetUser.id;
+    subjectName = targetUser.name;
+    viewingOtherUser = true;
+  }
+
+  const [assignedCount, openRaceCount, missingContracts, missingDocs, subjectAgencies] =
     await Promise.all([
-      userId
-        ? prisma.agency.count({
-            where: { status: "ASSIGNED", ...userAgencyAccessFilter(userId) },
-          })
-        : Promise.resolve(0),
+      prisma.agency.count({
+        where: { status: "ASSIGNED", ...userAgencyAccessFilter(subjectUserId) },
+      }),
       prisma.agency.count({ where: { status: "OPEN_RACE" } }),
-      userId
-        ? prisma.agency.count({
-            where: {
-              ...userAgencyAccessFilter(userId),
-              contractStatus: { in: ["MISSING", "PENDING"] },
-            },
-          })
-        : Promise.resolve(0),
-      userId
-        ? prisma.agency.count({
-            where: {
-              AND: [
-                userAgencyAccessFilter(userId),
-                { OR: [{ taxId: null }, { commercialRegister: null }] },
-              ],
-            },
-          })
-        : Promise.resolve(0),
-      userId
-        ? prisma.agency.findMany({
-            where: userAgencyAccessFilter(userId),
-            orderBy: { name: "asc" },
-          })
-        : Promise.resolve([]),
+      prisma.agency.count({
+        where: {
+          ...userAgencyAccessFilter(subjectUserId),
+          contractStatus: { in: ["MISSING", "PENDING"] },
+        },
+      }),
+      prisma.agency.count({
+        where: {
+          AND: [
+            userAgencyAccessFilter(subjectUserId),
+            { OR: [{ taxId: null }, { commercialRegister: null }] },
+          ],
+        },
+      }),
+      prisma.agency.findMany({
+        where: userAgencyAccessFilter(subjectUserId),
+        orderBy: { name: "asc" },
+      }),
     ]);
 
-  const actionItems = myAgencies.filter(
+  const actionItems = subjectAgencies.filter(
     (agency) =>
       !agency.taxId ||
       !agency.commercialRegister ||
@@ -64,7 +94,7 @@ export default async function DashboardPage() {
 
   const metrics = [
     {
-      label: "Total Assigned Agencies",
+      label: viewingOtherUser ? "Assigned Agencies" : "Total Assigned Agencies",
       value: assignedCount,
       className: "border-slate-200 bg-white",
     },
@@ -87,11 +117,36 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Compliance overview for {session?.user?.name}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Dashboard</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Compliance overview for {subjectName}
+          </p>
+        </div>
+        {viewingOtherUser && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="border-slate-300 bg-slate-50">
+              Manager view
+            </Badge>
+            <Link
+              href="/dashboard"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "gap-2",
+              )}
+            >
+              <X className="h-4 w-4" />
+              Back to my dashboard
+            </Link>
+            <Link
+              href={`/portfolio?user=${subjectUserId}`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              View portfolio
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -111,12 +166,18 @@ export default async function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Needs Immediate Action</CardTitle>
+          <CardTitle>
+            {viewingOtherUser
+              ? `Needs Immediate Action — ${subjectName}`
+              : "Needs Immediate Action"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {actionItems.length === 0 ? (
             <p className="text-sm text-slate-500">
-              All assigned agencies have complete compliance data.
+              {viewingOtherUser
+                ? `${subjectName} has no agencies needing immediate action.`
+                : "All assigned agencies have complete compliance data."}
             </p>
           ) : (
             <Table>
