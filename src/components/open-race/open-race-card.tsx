@@ -1,17 +1,21 @@
 "use client";
 
 import { MapPin } from "lucide-react";
-import { TypeBadge } from "@/components/agency/badges";
-import { ClaimAgencyDialog } from "@/components/open-race/claim-agency-dialog";
+import { TypeBadge, AgencyStatusBadge } from "@/components/agency/badges";
+import { DirectAssignSelect } from "@/components/open-race/direct-assign-select";
+import { RequestAssignmentDialog } from "@/components/open-race/request-assignment-dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+
+type SalesUser = { id: string; name: string; email: string };
 
 type OpenRaceCardProps = {
   id: string;
   name: string;
   location: string | null;
   type: string | null;
-  claimLimitReached: boolean;
+  userRole: string;
+  hasPendingRequest: boolean;
+  salesUsers: SalesUser[];
 };
 
 export function OpenRaceCard({
@@ -19,10 +23,15 @@ export function OpenRaceCard({
   name,
   location,
   type,
-  claimLimitReached,
+  userRole,
+  hasPendingRequest,
+  salesUsers,
 }: OpenRaceCardProps) {
+  const isManager = userRole === "MANAGER" || userRole === "DIRECTOR";
+  const isSales = userRole === "SALES";
+
   return (
-    <Card className="group relative overflow-hidden border-slate-200 transition hover:border-slate-300 hover:shadow-md">
+    <Card className="border-slate-200 transition hover:border-slate-300 hover:shadow-md">
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -32,22 +41,24 @@ export function OpenRaceCard({
               {location ?? "Location TBD"}
             </div>
           </div>
-          <TypeBadge type={type} />
+          <div className="flex flex-col items-end gap-2">
+            <AgencyStatusBadge status="OPEN_RACE" />
+            <TypeBadge type={type} />
+          </div>
         </div>
-        <div
-          className={cn(
-            "mt-6 transition",
-            claimLimitReached
-              ? "opacity-100"
-              : "opacity-0 group-hover:opacity-100",
+
+        <div className="mt-6 space-y-3">
+          {isSales && (
+            <RequestAssignmentDialog
+              agencyId={id}
+              agencyName={name}
+              pending={hasPendingRequest}
+              fullWidth
+            />
           )}
-        >
-          <ClaimAgencyDialog
-            agencyId={id}
-            agencyName={name}
-            disabled={claimLimitReached}
-            fullWidth
-          />
+          {isManager && (
+            <DirectAssignSelect agencyId={id} salesUsers={salesUsers} />
+          )}
         </div>
       </CardContent>
     </Card>

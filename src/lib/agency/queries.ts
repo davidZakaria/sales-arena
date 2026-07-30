@@ -1,8 +1,17 @@
+export function excludeArchivedFilter() {
+  return { status: { not: "ARCHIVED" as const } };
+}
+
 export function userAgencyAccessFilter(userId: string) {
   return {
-    OR: [
-      { primaryOwnerId: userId },
-      { coOwners: { some: { id: userId } } },
+    AND: [
+      excludeArchivedFilter(),
+      {
+        OR: [
+          { primaryOwnerId: userId },
+          { coOwners: { some: { id: userId } } },
+        ],
+      },
     ],
   };
 }

@@ -4,26 +4,22 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { ContractStatus } from "@/generated/prisma/client";
+import type { ComplianceDocumentType, ContractStatus } from "@/generated/prisma/client";
 import { createAuditLog, createAuditLogs } from "@/lib/audit/create-audit-log";
 import {
   buildComplianceAuditActions,
   canManageCoOwners,
 } from "@/lib/agency/ownership";
-import { getAgencyPermissions } from "@/lib/agency/permissions";
-import { CLAIM_LIMIT_ERROR, MAX_TEMPORARY_CLAIMS } from "@/lib/claims/constants";
-import {
-  buildClaimExpiry,
-  countActiveTemporaryClaims,
-  qualifiesForPermanentOwnership,
-} from "@/lib/claims/helpers";
-import { revertExpiredClaims } from "@/lib/claims/revert-expired-claims";
+import { REQUIRED_DOCUMENT_TYPES } from "@/lib/agency/normalize-contact";
+import { getAgencyPermissions, canArchiveAgency } from "@/lib/agency/permissions";
+import { requestAssignment } from "@/lib/actions/assignment";
 
 function revalidateAgencyPaths(agencyId: string) {
   revalidatePath("/open-race");
   revalidatePath("/dashboard");
   revalidatePath("/portfolio");
   revalidatePath("/manager");
+  revalidatePath("/operations");
   revalidatePath(`/agency/${agencyId}`);
 }
 
@@ -42,9 +38,7 @@ export async function updateAgencyCompliance(
 
   const existing = await prisma.agency.findUnique({
     where: { id: agencyId },
-    include: {
-      coOwners: { select: { id: true } },
-    },
+    include: { coOwners: { select: { id: true } } },
   });
 
   if (!existing) {
@@ -57,14 +51,17 @@ export async function updateAgencyCompliance(
     session.user.role,
   );
 
-  if (!permissions.canEditCompliance) {
+  if (!permissions.canEditComplianceFields) {
     throw new Error("You do not have permission to update compliance data");
+  }
+
+  if (existing.status === "VERIFIED" && session.user.role !== "MANAGER" && session.user.role !== "DIRECTOR") {
+    throw new Error("Verified agencies cannot be edited");
   }
 
   const taxId = data.taxId.trim() || null;
   const commercialRegister = data.commercialRegister.trim() || null;
   const { contractStatus } = data;
-  const permanent = qualifiesForPermanentOwnership(taxId, contractStatus);
 
   const auditActions = buildComplianceAuditActions(existing, {
     commercialRegister,
@@ -79,12 +76,6 @@ export async function updateAgencyCompliance(
         commercialRegister,
         taxId,
         contractStatus,
-        ...(permanent
-          ? {
-              claimExpiresAt: null,
-              claimedAt: null,
-            }
-          : {}),
       },
     });
 
@@ -94,50 +85,90 @@ export async function updateAgencyCompliance(
   revalidateAgencyPaths(agencyId);
 }
 
-export async function claimAgency(agencyId: string) {
+export async function uploadComplianceDocument(
+  agencyId: string,
+  documentType: ComplianceDocumentType,
+  fileName: string,
+) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !session.user.name) {
     throw new Error("Unauthorized");
   }
 
-  await revertExpiredClaims();
+  const agency = await prisma.agency.findUnique({
+    where: { id: agencyId },
+    include: { coOwners: { select: { id: true } } },
+  });
 
-  const [agency, activeTemporaryClaims] = await Promise.all([
-    prisma.agency.findUnique({ where: { id: agencyId } }),
-    countActiveTemporaryClaims(session.user.id),
-  ]);
-
-  if (!agency || agency.status !== "OPEN_RACE") {
-    throw new Error("Agency is not available to claim");
+  if (!agency) {
+    throw new Error("Agency not found");
   }
 
-  if (activeTemporaryClaims >= MAX_TEMPORARY_CLAIMS) {
-    throw new Error(CLAIM_LIMIT_ERROR);
+  const permissions = getAgencyPermissions(
+    agency,
+    session.user.id,
+    session.user.role,
+  );
+
+  if (!permissions.canUploadDocuments) {
+    throw new Error("You do not have permission to upload documents");
   }
 
-  const now = new Date();
+  if (agency.status !== "ASSIGNED") {
+    throw new Error("Documents can only be uploaded for assigned agencies");
+  }
+
+  const trimmedName = fileName.trim() || `${documentType.toLowerCase()}-upload.pdf`;
 
   await prisma.$transaction(async (tx) => {
-    await tx.agency.update({
-      where: { id: agencyId },
+    await tx.complianceDocument.create({
       data: {
-        status: "ASSIGNED",
-        primaryOwnerId: session.user.id,
-        claimedAt: now,
-        claimExpiresAt: buildClaimExpiry(now),
-        isDisputed: false,
+        agencyId,
+        uploadedById: session.user.id,
+        fileName: trimmedName,
+        documentType,
       },
     });
 
     await createAuditLog(
       agencyId,
       session.user.id,
-      `${session.user.name} claimed from Open Race`,
+      `${session.user.name} uploaded ${documentType.replace("_", " ")}: ${trimmedName}`,
       tx,
     );
+
+    const docs = await tx.complianceDocument.findMany({
+      where: { agencyId },
+      select: { documentType: true },
+    });
+
+    const types = new Set(docs.map((d) => d.documentType));
+    const complete = REQUIRED_DOCUMENT_TYPES.every((t) => types.has(t));
+
+    if (complete) {
+      await tx.agency.update({
+        where: { id: agencyId },
+        data: {
+          status: "PENDING_AUDIT",
+          submittedForAuditAt: new Date(),
+          claimExpiresAt: null,
+        },
+      });
+      await createAuditLog(
+        agencyId,
+        session.user.id,
+        `${session.user.name} submitted all documents for Operations audit`,
+        tx,
+      );
+    }
   });
 
   revalidateAgencyPaths(agencyId);
+}
+
+/** @deprecated Use requestAssignment instead */
+export async function claimAgency(agencyId: string) {
+  return requestAssignment(agencyId);
 }
 
 export async function addCoOwner(agencyId: string, newUserId: string) {
@@ -162,21 +193,21 @@ export async function addCoOwner(agencyId: string, newUserId: string) {
     throw new Error("Only the primary owner or a manager can add co-pilots");
   }
 
-  if (agency.primaryOwnerId === newUserId) {
+  if (newUserId && agency.primaryOwnerId === newUserId) {
     throw new Error("The primary owner cannot be added as a co-pilot");
-  }
-
-  if (agency.coOwners.some((coOwner) => coOwner.id === newUserId)) {
-    throw new Error("User is already a co-pilot on this agency");
   }
 
   const newUser = await prisma.user.findUnique({
     where: { id: newUserId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, role: true },
   });
 
-  if (!newUser) {
-    throw new Error("User not found");
+  if (!newUser || newUser.role === "OPERATIONS") {
+    throw new Error("Invalid co-pilot user");
+  }
+
+  if (agency.coOwners.some((coOwner) => coOwner.id === newUserId)) {
+    throw new Error("User is already a co-pilot on this agency");
   }
 
   const primaryName = agency.primaryOwner?.name ?? "Primary owner";
@@ -184,11 +215,8 @@ export async function addCoOwner(agencyId: string, newUserId: string) {
   await prisma.$transaction(async (tx) => {
     await tx.agency.update({
       where: { id: agencyId },
-      data: {
-        coOwners: { connect: { id: newUserId } },
-      },
+      data: { coOwners: { connect: { id: newUserId } } },
     });
-
     await createAuditLog(
       agencyId,
       session.user.id,
@@ -208,9 +236,7 @@ export async function removeCoOwner(agencyId: string, coOwnerUserId: string) {
 
   const agency = await prisma.agency.findUnique({
     where: { id: agencyId },
-    include: {
-      coOwners: { select: { id: true, name: true } },
-    },
+    include: { coOwners: { select: { id: true, name: true } } },
   });
 
   if (!agency) {
@@ -229,11 +255,8 @@ export async function removeCoOwner(agencyId: string, coOwnerUserId: string) {
   await prisma.$transaction(async (tx) => {
     await tx.agency.update({
       where: { id: agencyId },
-      data: {
-        coOwners: { disconnect: { id: coOwnerUserId } },
-      },
+      data: { coOwners: { disconnect: { id: coOwnerUserId } } },
     });
-
     await createAuditLog(
       agencyId,
       session.user.id,
@@ -253,9 +276,7 @@ export async function fileDispute(agencyId: string) {
 
   const agency = await prisma.agency.findUnique({
     where: { id: agencyId },
-    include: {
-      coOwners: { select: { id: true } },
-    },
+    include: { coOwners: { select: { id: true } } },
   });
 
   if (!agency) {
@@ -281,7 +302,6 @@ export async function fileDispute(agencyId: string) {
       where: { id: agencyId },
       data: { isDisputed: true },
     });
-
     await createAuditLog(
       agencyId,
       session.user.id,
@@ -293,4 +313,48 @@ export async function fileDispute(agencyId: string) {
   revalidateAgencyPaths(agencyId);
 }
 
-export { revertExpiredClaims };
+export async function archiveAgency(agencyId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !session.user.name) {
+    throw new Error("Unauthorized");
+  }
+
+  if (!canArchiveAgency(session.user.role)) {
+    throw new Error("You do not have permission to archive agencies");
+  }
+
+  const agency = await prisma.agency.findUnique({ where: { id: agencyId } });
+  if (!agency) {
+    throw new Error("Agency not found");
+  }
+
+  if (agency.status === "ARCHIVED") {
+    throw new Error("Agency is already archived");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.agency.update({
+      where: { id: agencyId },
+      data: {
+        status: "ARCHIVED",
+        claimExpiresAt: null,
+        isDisputed: false,
+      },
+    });
+    await createAuditLog(
+      agencyId,
+      session.user.id,
+      `${session.user.name} archived ${agency.name}`,
+      tx,
+    );
+  });
+
+  revalidateAgencyPaths(agencyId);
+  revalidatePath("/operations");
+  revalidatePath("/open-race");
+}
+
+export async function revertExpiredClaims() {
+  // Deprecated for manager-assigned workflow; kept as no-op for layout compatibility
+  return { reverted: 0 };
+}

@@ -7,5 +7,6 @@ export const config = {
     "/open-race/:path*",
     "/portfolio/:path*",
     "/manager/:path*",
+    "/operations/:path*",
   ],
 };

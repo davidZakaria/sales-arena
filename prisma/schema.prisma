@@ -11,17 +11,35 @@ enum Role {
   SALES
   MANAGER
   DIRECTOR
+  OPERATIONS
 }
 
 enum AgencyStatus {
-  ASSIGNED
+  DRAFT
   OPEN_RACE
+  ASSIGNED
+  PENDING_AUDIT
+  VERIFIED
+  ARCHIVED
 }
 
 enum ContractStatus {
   PENDING
   SIGNED
   MISSING
+}
+
+enum AssignmentRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ComplianceDocumentType {
+  CONTRACT
+  TAX_ID
+  COMMERCIAL_REGISTER
+  OTHER
 }
 
 model User {
@@ -34,43 +52,88 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  manager         User?      @relation("UserHierarchy", fields: [managerId], references: [id])
-  reports         User[]     @relation("UserHierarchy")
-  primaryAgencies Agency[]   @relation("PrimaryOwner")
-  sharedAgencies  Agency[]   @relation("AgencyCoOwners")
-  auditLogs       AuditLog[]
+  manager              User?                @relation("UserHierarchy", fields: [managerId], references: [id])
+  reports              User[]               @relation("UserHierarchy")
+  primaryAgencies      Agency[]             @relation("PrimaryOwner")
+  sharedAgencies       Agency[]             @relation("AgencyCoOwners")
+  createdAgencies      Agency[]             @relation("AgencyCreator")
+  auditLogs            AuditLog[]
+  assignmentRequests   AssignmentRequest[]
+  complianceDocuments  ComplianceDocument[]
 
   @@index([managerId])
   @@index([role])
 }
 
 model Agency {
-  id                 String         @id @default(cuid())
-  name               String
-  type               String?
-  commercialRegister String?
-  taxId              String?
-  whatsappLink       String?
-  location           String?
-  repPhone1          String?
-  status             AgencyStatus
-  primaryOwnerId     String?
-  contractStatus     ContractStatus
-  isDisputed         Boolean        @default(false)
-  claimedAt          DateTime?
-  claimExpiresAt     DateTime?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                  String         @id @default(cuid())
+  name                String
+  type                String?
+  commercialRegister  String?
+  taxId               String?
+  whatsappLink        String?
+  location            String?
+  repPhone1           String?
+  status              AgencyStatus
+  primaryOwnerId      String?
+  createdById         String?
+  contractStatus      ContractStatus
+  isDisputed          Boolean        @default(false)
+  claimedAt           DateTime?
+  claimExpiresAt      DateTime?
+  submittedForAuditAt DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
-  primaryOwner User?      @relation("PrimaryOwner", fields: [primaryOwnerId], references: [id])
-  coOwners     User[]     @relation("AgencyCoOwners")
-  auditLogs    AuditLog[]
+  primaryOwner        User?                @relation("PrimaryOwner", fields: [primaryOwnerId], references: [id])
+  createdBy           User?                @relation("AgencyCreator", fields: [createdById], references: [id])
+  coOwners            User[]               @relation("AgencyCoOwners")
+  auditLogs           AuditLog[]
+  assignmentRequests  AssignmentRequest[]
+  complianceDocuments ComplianceDocument[]
 
   @@index([status])
   @@index([primaryOwnerId])
+  @@index([createdById])
   @@index([contractStatus])
   @@index([claimExpiresAt])
   @@index([isDisputed])
+  @@index([submittedForAuditAt])
+  @@index([whatsappLink])
+  @@index([repPhone1])
+}
+
+model AssignmentRequest {
+  id        String                  @id @default(cuid())
+  agencyId  String
+  userId    String
+  status    AssignmentRequestStatus @default(PENDING)
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([agencyId])
+  @@index([userId])
+  @@index([agencyId, userId])
+}
+
+model ComplianceDocument {
+  id           String                 @id @default(cuid())
+  agencyId     String
+  uploadedById String
+  fileName     String
+  documentType ComplianceDocumentType
+  createdAt    DateTime               @default(now())
+
+  agency     Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation(fields: [uploadedById], references: [id])
+
+  @@index([agencyId])
+  @@index([uploadedById])
+  @@index([createdAt])
 }
 
 model AuditLog {

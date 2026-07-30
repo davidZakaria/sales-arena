@@ -3,26 +3,59 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Briefcase, LayoutDashboard, Scale, Trophy } from "lucide-react";
+import {
+  Briefcase,
+  ClipboardCheck,
+  LayoutDashboard,
+  Scale,
+  Trophy,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const baseNavItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/portfolio", label: "My Portfolio", icon: Briefcase },
-  { href: "/open-race", label: "Open Race Market", icon: Trophy },
-];
+export type SidebarBadges = {
+  auditQueue?: number;
+  pendingAssignments?: number;
+};
 
-export function Sidebar() {
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+};
+
+export function Sidebar({ badges = {} }: { badges?: SidebarBadges }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const role = session?.user?.role;
 
-  const navItems =
-    session?.user?.role === "MANAGER" || session?.user?.role === "DIRECTOR"
-      ? [
-          ...baseNavItems,
-          { href: "/manager", label: "Manager Dashboard", icon: Scale },
-        ]
-      : baseNavItems;
+  let navItems: NavItem[];
+
+  if (role === "OPERATIONS") {
+    navItems = [
+      {
+        href: "/operations",
+        label: "Operations Hub",
+        icon: ClipboardCheck,
+        badge: badges.auditQueue,
+      },
+    ];
+  } else {
+    navItems = [
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/portfolio", label: "My Portfolio", icon: Briefcase },
+      { href: "/open-race", label: "Open Race Market", icon: Trophy },
+    ];
+
+    if (role === "MANAGER" || role === "DIRECTOR") {
+      navItems.push({
+        href: "/manager",
+        label: "Manager Dashboard",
+        icon: Scale,
+        badge: badges.pendingAssignments,
+      });
+    }
+  }
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-slate-950 text-slate-100">
@@ -33,7 +66,7 @@ export function Sidebar() {
         <h1 className="mt-1 text-lg font-semibold tracking-tight">BRM</h1>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-4">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon, badge }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
 
           return (
@@ -48,7 +81,12 @@ export function Sidebar() {
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              <span className="flex-1">{label}</span>
+              {badge !== undefined && badge > 0 && (
+                <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-slate-950">
+                  {badge}
+                </span>
+              )}
             </Link>
           );
         })}

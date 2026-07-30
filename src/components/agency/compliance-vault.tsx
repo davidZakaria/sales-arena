@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import type { ContractStatus } from "@/generated/prisma/client";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { AgencyStatus, ComplianceDocumentType, ContractStatus } from "@/generated/prisma/client";
 import type { AgencyPermissions } from "@/lib/agency/permissions";
-import { updateAgencyCompliance } from "@/lib/actions/agency";
+import { updateAgencyCompliance, uploadComplianceDocument } from "@/lib/actions/agency";
+import {
+  returnAgencyForRevision,
+  verifyAgencyCompliance,
+} from "@/lib/actions/operations";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,29 +21,63 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UploadCloud } from "lucide-react";
+import { FileText, UploadCloud } from "lucide-react";
+
+type ComplianceDocumentRow = {
+  id: string;
+  fileName: string;
+  documentType: ComplianceDocumentType;
+  createdAt: Date;
+  uploadedBy: { name: string };
+};
 
 type ComplianceVaultProps = {
   agencyId: string;
+  agencyStatus: AgencyStatus;
   commercialRegister: string | null;
   taxId: string | null;
   contractStatus: ContractStatus;
+  documents: ComplianceDocumentRow[];
   permissions: AgencyPermissions;
+};
+
+const DOCUMENT_TYPE_LABELS: Record<ComplianceDocumentType, string> = {
+  CONTRACT: "Contract",
+  TAX_ID: "Tax ID",
+  COMMERCIAL_REGISTER: "Commercial Register",
+  OTHER: "Other",
 };
 
 export function ComplianceVault({
   agencyId,
+  agencyStatus,
   commercialRegister,
   taxId,
   contractStatus,
+  documents,
   permissions,
 }: ComplianceVaultProps) {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [cr, setCr] = useState(commercialRegister ?? "");
   const [tax, setTax] = useState(taxId ?? "");
   const [status, setStatus] = useState<ContractStatus>(contractStatus);
+  const [documentType, setDocumentType] = useState<ComplianceDocumentType>("TAX_ID");
   const [message, setMessage] = useState("");
+  const [returnReason, setReturnReason] = useState("");
   const [isPending, startTransition] = useTransition();
-  const readOnly = !permissions.canEditCompliance;
+
+  const fieldsLocked =
+    !permissions.canEditComplianceFields ||
+    (permissions.isPrimaryOwner && agencyStatus === "ASSIGNED");
+
+  const uploadLocked =
+    !permissions.canUploadDocuments ||
+    agencyStatus === "PENDING_AUDIT" ||
+    agencyStatus === "VERIFIED";
+
+  const waitingForAudit =
+    agencyStatus === "PENDING_AUDIT" && permissions.isPrimaryOwner;
 
   function handleSave() {
     startTransition(async () => {
@@ -48,26 +88,97 @@ export function ComplianceVault({
           contractStatus: status,
         });
         setMessage("Compliance data saved.");
+        router.refresh();
       } catch {
         setMessage("Failed to save compliance data.");
       }
     });
   }
 
+  function handleVerify() {
+    startTransition(async () => {
+      try {
+        await verifyAgencyCompliance(agencyId, {
+          commercialRegister: cr,
+          taxId: tax,
+          contractStatus: "SIGNED",
+        });
+        router.refresh();
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Verification failed.");
+      }
+    });
+  }
+
+  function handleReturn() {
+    startTransition(async () => {
+      try {
+        await returnAgencyForRevision(agencyId, returnReason.trim() || undefined);
+        setReturnReason("");
+        router.refresh();
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Return failed.");
+      }
+    });
+  }
+
+  function handleMockUpload() {
+    const fileName = fileInputRef.current?.files?.[0]?.name ?? `${documentType.toLowerCase()}-upload.pdf`;
+    startTransition(async () => {
+      try {
+        await uploadComplianceDocument(agencyId, documentType, fileName);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        router.refresh();
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Upload failed.");
+      }
+    });
+  }
+
   return (
-    <Card>
+    <Card className={permissions.isAuditMode ? "border-amber-300 ring-1 ring-amber-200" : undefined}>
       <CardHeader>
-        <CardTitle>Legal & Compliance Vault</CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle>Legal & Compliance Vault</CardTitle>
+          {permissions.isAuditMode && (
+            <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">Audit Mode</Badge>
+          )}
+          {fieldsLocked && permissions.isPrimaryOwner && agencyStatus === "ASSIGNED" && (
+            <Badge variant="outline" className="border-slate-300 text-slate-600">
+              Locked for Ops Audit
+            </Badge>
+          )}
+        </div>
         <CardDescription>
           Track السجل التجاري, الرقم الضريبي, and contract status for this agency.
-          {readOnly && (
-            <span className="mt-1 block text-amber-700">
-              View only — you do not have permission to edit this agency.
+          {waitingForAudit && (
+            <span className="mt-1 block font-medium text-amber-700">
+              Documents submitted. Waiting for Operations Audit.
             </span>
           )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {documents.length > 0 && (
+          <div className="space-y-2">
+            <Label>Uploaded Documents</Label>
+            <ul className="divide-y rounded-lg border border-slate-200 bg-slate-50">
+              {documents.map((doc) => (
+                <li key={doc.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                  <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-slate-800">{doc.fileName}</p>
+                    <p className="text-xs text-slate-500">
+                      {DOCUMENT_TYPE_LABELS[doc.documentType]} · {doc.uploadedBy.name} ·{" "}
+                      {new Date(doc.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="commercialRegister">السجل التجاري (Commercial Register)</Label>
           <Input
@@ -75,7 +186,7 @@ export function ComplianceVault({
             value={cr}
             onChange={(event) => setCr(event.target.value)}
             placeholder="Enter commercial register number"
-            disabled={readOnly}
+            disabled={fieldsLocked}
           />
         </div>
         <div className="space-y-2">
@@ -85,7 +196,7 @@ export function ComplianceVault({
             value={tax}
             onChange={(event) => setTax(event.target.value)}
             placeholder="Enter tax ID"
-            disabled={readOnly}
+            disabled={fieldsLocked}
           />
         </div>
         <div className="space-y-2">
@@ -93,7 +204,7 @@ export function ComplianceVault({
           <Select
             value={status}
             onValueChange={(value) => setStatus(value as ContractStatus)}
-            disabled={readOnly}
+            disabled={fieldsLocked || permissions.canVerifyAgency}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select contract status" />
@@ -105,29 +216,89 @@ export function ComplianceVault({
             </SelectContent>
           </Select>
         </div>
-        <div
-          className={`rounded-xl border border-dashed p-8 text-center ${
-            permissions.canUploadDocuments
-              ? "border-slate-300 bg-slate-50"
-              : "border-slate-200 bg-slate-100 opacity-70"
-          }`}
-        >
-          <UploadCloud className="mx-auto h-8 w-8 text-slate-400" />
-          <p className="mt-3 text-sm font-medium text-slate-700">
-            Drag & drop contract PDFs or Tax ID photos
-          </p>
-          <p className="mt-1 text-xs text-slate-500">
-            {permissions.canUploadDocuments
-              ? "Mock upload zone — file storage coming later"
-              : "Upload disabled — view-only access"}
-          </p>
-        </div>
-        {permissions.canEditCompliance && (
+
+        {!uploadLocked && (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
+            <UploadCloud className="mx-auto h-8 w-8 text-slate-400" />
+            <p className="mt-3 text-center text-sm font-medium text-slate-700">
+              Upload contract PDFs or Tax ID photos
+            </p>
+            <p className="mt-1 text-center text-xs text-slate-500">
+              Mock upload — metadata only until file storage is wired
+            </p>
+            <div className="mx-auto mt-4 flex max-w-md flex-col gap-3 sm:flex-row">
+              <Select
+                value={documentType}
+                onValueChange={(value) => setDocumentType(value as ComplianceDocumentType)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TAX_ID">Tax ID</SelectItem>
+                  <SelectItem value="COMMERCIAL_REGISTER">Commercial Register</SelectItem>
+                  <SelectItem value="CONTRACT">Contract</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input ref={fileInputRef} type="file" className="flex-1" />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isPending}
+                onClick={handleMockUpload}
+              >
+                Upload
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {uploadLocked && permissions.isPrimaryOwner && agencyStatus === "ASSIGNED" && (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-100 p-8 text-center opacity-70">
+            <UploadCloud className="mx-auto h-8 w-8 text-slate-400" />
+            <p className="mt-3 text-sm text-slate-500">Upload zone locked</p>
+          </div>
+        )}
+
+        {permissions.canEditComplianceFields && !permissions.canVerifyAgency && (
           <div className="flex items-center gap-3">
             <Button onClick={handleSave} disabled={isPending} className="bg-slate-950 hover:bg-slate-800">
               {isPending ? "Saving…" : "Save Compliance Data"}
             </Button>
             {message && <p className="text-sm text-emerald-600">{message}</p>}
+          </div>
+        )}
+
+        {permissions.canVerifyAgency && (
+          <div className="space-y-4 border-t pt-4">
+            <Button
+              onClick={handleVerify}
+              disabled={isPending || !cr.trim() || !tax.trim()}
+              className="bg-emerald-700 hover:bg-emerald-800"
+            >
+              {isPending ? "Verifying…" : "Verify & Complete"}
+            </Button>
+            {permissions.canReturnForRevision && (
+              <div className="space-y-2">
+                <Label htmlFor="returnReason">Return reason (optional)</Label>
+                <Input
+                  id="returnReason"
+                  value={returnReason}
+                  onChange={(event) => setReturnReason(event.target.value)}
+                  placeholder="e.g. Tax ID photo is blurry"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={handleReturn}
+                >
+                  Return to Sales
+                </Button>
+              </div>
+            )}
+            {message && <p className="text-sm text-rose-600">{message}</p>}
           </div>
         )}
       </CardContent>

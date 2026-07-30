@@ -36,6 +36,10 @@ export default async function DashboardPage({
     redirect("/login");
   }
 
+  if (viewerRole === "OPERATIONS") {
+    redirect("/operations");
+  }
+
   let subjectUserId = viewerId;
   let subjectName = session.user.name ?? "You";
   let viewingOtherUser = false;

@@ -17,6 +17,11 @@ export function getDaysRemaining(claimExpiresAt: Date, now = new Date()): number
   return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 }
 
+export function getDaysOverdue(claimExpiresAt: Date, now = new Date()): number {
+  const diffMs = now.getTime() - claimExpiresAt.getTime();
+  return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+}
+
 export function qualifiesForPermanentOwnership(
   taxId: string | null,
   contractStatus: ContractStatus,

@@ -18,6 +18,7 @@ export async function GET(request: Request) {
         orderBy: { name: "asc" },
       }),
       prisma.agency.findMany({
+        where: { status: { not: "ARCHIVED" } },
         select: {
           id: true,
           name: true,
@@ -50,8 +51,9 @@ export async function GET(request: Request) {
     >`
       SELECT id, name, location, type
       FROM Agency
-      WHERE name LIKE ${pattern} COLLATE NOCASE
-         OR location LIKE ${pattern} COLLATE NOCASE
+      WHERE status != 'ARCHIVED'
+        AND (name LIKE ${pattern} COLLATE NOCASE
+         OR location LIKE ${pattern} COLLATE NOCASE)
       ORDER BY name ASC
       LIMIT 8
     `,

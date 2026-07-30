@@ -5,6 +5,8 @@ import { createAuditLog } from "../src/lib/audit/create-audit-log";
 const DEMO_PASSWORD = "brm123456";
 
 async function main() {
+  await prisma.complianceDocument.deleteMany();
+  await prisma.assignmentRequest.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.agency.deleteMany();
   await prisma.user.deleteMany();
@@ -26,6 +28,16 @@ async function main() {
       email: "reem@newjerseyegypt.com",
       passwordHash,
       role: "MANAGER",
+      managerId: director.id,
+    },
+  });
+
+  const operations = await prisma.user.create({
+    data: {
+      name: "Sara Operations",
+      email: "ops@newjerseyegypt.com",
+      passwordHash,
+      role: "OPERATIONS",
       managerId: director.id,
     },
   });
@@ -60,8 +72,9 @@ async function main() {
         whatsappLink: "https://wa.me/201012345678",
         status: "ASSIGNED",
         primaryOwnerId: tantawy.id,
+        createdById: operations.id,
         contractStatus: "MISSING",
-        commercialRegister: "CR-102938",
+        commercialRegister: null,
         taxId: null,
       },
       {
@@ -70,11 +83,13 @@ async function main() {
         location: "Maadi",
         repPhone1: "+201098765432",
         whatsappLink: "https://wa.me/201098765432",
-        status: "ASSIGNED",
+        status: "PENDING_AUDIT",
         primaryOwnerId: tantawy.id,
+        createdById: operations.id,
         contractStatus: "PENDING",
         commercialRegister: null,
-        taxId: "300-123-456",
+        taxId: null,
+        submittedForAuditAt: new Date(),
       },
       {
         name: "Pyramids Realty",
@@ -82,8 +97,9 @@ async function main() {
         location: "6th October",
         repPhone1: "+201055566677",
         whatsappLink: "https://wa.me/201055566677",
-        status: "ASSIGNED",
+        status: "VERIFIED",
         primaryOwnerId: tantawy.id,
+        createdById: operations.id,
         contractStatus: "SIGNED",
         commercialRegister: "CR-445566",
         taxId: "300-987-654",
@@ -95,9 +111,8 @@ async function main() {
         repPhone1: "+201033344455",
         whatsappLink: "https://wa.me/201033344455",
         status: "OPEN_RACE",
+        createdById: operations.id,
         contractStatus: "MISSING",
-        commercialRegister: null,
-        taxId: null,
       },
       {
         name: "Cairo Gate Realty",
@@ -106,67 +121,64 @@ async function main() {
         repPhone1: "+201066677788",
         whatsappLink: "https://wa.me/201066677788",
         status: "OPEN_RACE",
-        contractStatus: "PENDING",
-        commercialRegister: "CR-778899",
-        taxId: null,
+        createdById: operations.id,
+        contractStatus: "MISSING",
       },
       {
-        name: "Horizon Estates",
-        type: "A",
-        location: "Nasr City",
-        repPhone1: "+201077788899",
-        whatsappLink: "https://wa.me/201077788899",
-        status: "OPEN_RACE",
+        name: "Draft Broker Co",
+        type: "C",
+        location: "Alexandria",
+        repPhone1: "+201011122233",
+        whatsappLink: "https://wa.me/201011122233",
+        status: "DRAFT",
+        createdById: operations.id,
         contractStatus: "MISSING",
-        commercialRegister: null,
-        taxId: "300-555-111",
       },
     ],
   });
 
-  const aqarMisr = await prisma.agency.findFirstOrThrow({
-    where: { name: "Aqar Misr" },
-  });
-
-  const nileBrokers = await prisma.agency.findFirstOrThrow({
-    where: { name: "Nile Brokers" },
-  });
+  const aqarMisr = await prisma.agency.findFirstOrThrow({ where: { name: "Aqar Misr" } });
+  const nileBrokers = await prisma.agency.findFirstOrThrow({ where: { name: "Nile Brokers" } });
+  const delta = await prisma.agency.findFirstOrThrow({ where: { name: "Delta Properties" } });
 
   await prisma.agency.update({
     where: { id: aqarMisr.id },
-    data: {
-      coOwners: { connect: { id: karim.id } },
-    },
+    data: { coOwners: { connect: { id: karim.id } } },
   });
 
   await prisma.agency.update({
     where: { id: nileBrokers.id },
-    data: { isDisputed: true },
+    data: { isDisputed: false },
   });
 
-  await createAuditLog(
-    aqarMisr.id,
-    tantawy.id,
-    `${tantawy.name} added ${karim.name} as Co-Pilot`,
-  );
+  await prisma.complianceDocument.createMany({
+    data: [
+      { agencyId: nileBrokers.id, uploadedById: tantawy.id, fileName: "tax-id.pdf", documentType: "TAX_ID" },
+      { agencyId: nileBrokers.id, uploadedById: tantawy.id, fileName: "cr.pdf", documentType: "COMMERCIAL_REGISTER" },
+      { agencyId: nileBrokers.id, uploadedById: tantawy.id, fileName: "contract.pdf", documentType: "CONTRACT" },
+    ],
+  });
 
-  await createAuditLog(
-    nileBrokers.id,
-    karim.id,
-    `${karim.name} filed a Dispute / Request Access`,
-  );
+  await prisma.assignmentRequest.create({
+    data: {
+      agencyId: delta.id,
+      userId: karim.id,
+      status: "PENDING",
+    },
+  });
+
+  await createAuditLog(aqarMisr.id, tantawy.id, `${tantawy.name} added ${karim.name} as Co-Pilot`);
+  await createAuditLog(nileBrokers.id, tantawy.id, `${tantawy.name} submitted documents for Operations audit`);
+  await createAuditLog(delta.id, karim.id, `${karim.name} requested assignment from Open Race`);
 
   console.log("Seed complete.");
   console.log("Demo password for all users:", DEMO_PASSWORD);
   console.log("Users:");
-  console.log(`  Director:     ${director.email}`);
-  console.log(`  Manager:      ${manager.email}`);
-  console.log(`  Sales (Primary): ${tantawy.email}`);
-  console.log(`  Sales (Co-Pilot/Disputes): ${karim.email}`);
-  console.log("");
-  console.log("Demo scenarios:");
-  console.log("  - Aqar Misr: Tantawy primary, Karim co-pilot");
-  console.log("  - Nile Brokers: disputed by Karim (see Manager Dashboard)");
+  console.log(`  Director:    ${director.email}`);
+  console.log(`  Manager:     ${manager.email}`);
+  console.log(`  Operations:  ${operations.email}`);
+  console.log(`  Sales:       ${tantawy.email}`);
+  console.log(`  Sales:       ${karim.email}`);
 }
 
 main()

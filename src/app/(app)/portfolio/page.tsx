@@ -8,9 +8,8 @@ import {
   canViewUserPortfolio,
   userAgencyAccessFilter,
 } from "@/lib/agency/queries";
-import { ClaimExpiryBadge } from "@/components/agency/claim-expiry-badge";
 import { PortfolioRoleBadge } from "@/components/agency/portfolio-role-badge";
-import { ContractStatusBadge, TypeBadge } from "@/components/agency/badges";
+import { AgencyStatusBadge, ContractStatusBadge, TypeBadge } from "@/components/agency/badges";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +27,10 @@ export default async function PortfolioPage({
 
   if (!viewerId || !viewerRole) {
     redirect("/login");
+  }
+
+  if (viewerRole === "OPERATIONS") {
+    redirect("/operations");
   }
 
   let subjectUserId = viewerId;
@@ -101,7 +104,7 @@ export default async function PortfolioPage({
           <CardContent className="py-10 text-center text-sm text-slate-500">
             {viewingOtherUser
               ? `${subjectName} has no assigned agencies yet.`
-              : "No agencies assigned yet. Visit the Open Race Market to claim one."}
+              : "No agencies assigned yet. Visit the Open Race Market to request an assignment."}
           </CardContent>
         </Card>
       ) : (
@@ -122,8 +125,8 @@ export default async function PortfolioPage({
                     <p>{agency.location ?? "Location TBD"}</p>
                     <div className="flex flex-wrap gap-2">
                       <PortfolioRoleBadge role={isPrimary ? "primary" : "co-pilot"} />
+                      <AgencyStatusBadge status={agency.status} />
                       <ContractStatusBadge status={agency.contractStatus} />
-                      <ClaimExpiryBadge claimExpiresAt={agency.claimExpiresAt} />
                     </div>
                   </CardContent>
                 </Card>

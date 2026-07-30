@@ -1,0 +1,1 @@
+-- ARCHIVED added to AgencyStatus enum (SQLite stores status as TEXT; no DDL change required)
