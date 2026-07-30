@@ -8,6 +8,7 @@ import {
   canViewUserPortfolio,
   userAgencyAccessFilter,
 } from "@/lib/agency/queries";
+import { AgencyStatusBadge } from "@/components/agency/badges";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -20,7 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ContractStatusBadge } from "@/components/agency/badges";
+
+const ACTION_STATUS_LABELS: Record<string, string> = {
+  ASSIGNED: "Upload compliance documents",
+  PENDING_AUDIT: "Awaiting Operations audit",
+};
 
 export default async function DashboardPage({
   searchParams,
@@ -63,59 +68,54 @@ export default async function DashboardPage({
     viewingOtherUser = true;
   }
 
-  const [assignedCount, openRaceCount, missingContracts, missingDocs, subjectAgencies] =
-    await Promise.all([
-      prisma.agency.count({
-        where: { status: "ASSIGNED", ...userAgencyAccessFilter(subjectUserId) },
-      }),
-      prisma.agency.count({ where: { status: "OPEN_RACE" } }),
-      prisma.agency.count({
-        where: {
-          ...userAgencyAccessFilter(subjectUserId),
-          contractStatus: { in: ["MISSING", "PENDING"] },
-        },
-      }),
-      prisma.agency.count({
-        where: {
-          AND: [
-            userAgencyAccessFilter(subjectUserId),
-            { OR: [{ taxId: null }, { commercialRegister: null }] },
-          ],
-        },
-      }),
-      prisma.agency.findMany({
-        where: userAgencyAccessFilter(subjectUserId),
-        orderBy: { name: "asc" },
-      }),
-    ]);
+  const accessFilter = userAgencyAccessFilter(subjectUserId);
 
-  const actionItems = subjectAgencies.filter(
-    (agency) =>
-      !agency.taxId ||
-      !agency.commercialRegister ||
-      agency.contractStatus === "MISSING",
-  );
+  const [
+    actionRequiredCount,
+    pendingAuditCount,
+    verifiedCount,
+    openRaceCount,
+    actionAgencies,
+  ] = await Promise.all([
+    prisma.agency.count({
+      where: { status: "ASSIGNED", ...accessFilter },
+    }),
+    prisma.agency.count({
+      where: { status: "PENDING_AUDIT", ...accessFilter },
+    }),
+    prisma.agency.count({
+      where: { status: "VERIFIED", ...accessFilter },
+    }),
+    prisma.agency.count({ where: { status: "OPEN_RACE" } }),
+    prisma.agency.findMany({
+      where: {
+        status: { in: ["ASSIGNED", "PENDING_AUDIT"] },
+        ...accessFilter,
+      },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const metrics = [
     {
-      label: viewingOtherUser ? "Assigned Agencies" : "Total Assigned Agencies",
-      value: assignedCount,
-      className: "border-slate-200 bg-white",
+      label: "Action Required (Missing Docs)",
+      value: actionRequiredCount,
+      className: "border-amber-200 bg-amber-50 text-amber-900",
+    },
+    {
+      label: "Agencies Pending Audit",
+      value: pendingAuditCount,
+      className: "border-violet-200 bg-violet-50 text-violet-900",
+    },
+    {
+      label: "Verified Agencies",
+      value: verifiedCount,
+      className: "border-emerald-200 bg-emerald-50 text-emerald-900",
     },
     {
       label: "Open Race Available",
       value: openRaceCount,
       className: "border-blue-200 bg-blue-50 text-blue-900",
-    },
-    {
-      label: "Missing Contracts",
-      value: missingContracts,
-      className: "border-rose-200 bg-rose-50 text-rose-900",
-    },
-    {
-      label: "Missing Tax ID / CR",
-      value: missingDocs,
-      className: "border-amber-200 bg-amber-50 text-amber-900",
     },
   ];
 
@@ -125,7 +125,7 @@ export default async function DashboardPage({
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Dashboard</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Compliance overview for {subjectName}
+            Pipeline overview for {subjectName}
           </p>
         </div>
         {viewingOtherUser && (
@@ -177,62 +177,57 @@ export default async function DashboardPage({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {actionItems.length === 0 ? (
+          {actionAgencies.length === 0 ? (
             <p className="text-sm text-slate-500">
               {viewingOtherUser
                 ? `${subjectName} has no agencies needing immediate action.`
-                : "All assigned agencies have complete compliance data."}
+                : "No agencies require uploads or audit follow-up."}
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Agency</TableHead>
-                  <TableHead>Missing</TableHead>
-                  <TableHead>Contract</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead className="text-right">Contact</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {actionItems.map((agency) => {
-                  const missing: string[] = [];
-                  if (!agency.taxId) missing.push("Tax ID");
-                  if (!agency.commercialRegister) missing.push("CR");
-                  if (agency.contractStatus === "MISSING") missing.push("Contract");
-
-                  return (
-                    <TableRow key={agency.id}>
-                      <TableCell>
+                {actionAgencies.map((agency) => (
+                  <TableRow key={agency.id}>
+                    <TableCell>
+                      <Link
+                        href={`/agency/${agency.id}`}
+                        className="font-medium text-slate-900 hover:underline"
+                      >
+                        {agency.name}
+                      </Link>
+                      <p className="text-xs text-slate-500">{agency.location}</p>
+                    </TableCell>
+                    <TableCell>
+                      <AgencyStatusBadge status={agency.status} />
+                    </TableCell>
+                    <TableCell className="text-amber-800">
+                      {ACTION_STATUS_LABELS[agency.status] ?? "Review required"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {agency.whatsappLink ? (
                         <Link
-                          href={`/agency/${agency.id}`}
-                          className="font-medium text-slate-900 hover:underline"
+                          href={agency.whatsappLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                         >
-                          {agency.name}
+                          <MessageCircle className="mr-2 h-4 w-4" />
+                          WhatsApp
                         </Link>
-                        <p className="text-xs text-slate-500">{agency.location}</p>
-                      </TableCell>
-                      <TableCell className="text-amber-700">{missing.join(", ")}</TableCell>
-                      <TableCell>
-                        <ContractStatusBadge status={agency.contractStatus} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {agency.whatsappLink ? (
-                          <Link
-                            href={agency.whatsappLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                          >
-                            <MessageCircle className="mr-2 h-4 w-4" />
-                            WhatsApp
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-slate-400">No link</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                      ) : (
+                        <span className="text-xs text-slate-400">No link</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}

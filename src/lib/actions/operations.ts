@@ -6,7 +6,13 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/audit/create-audit-log";
 import { contactsMatch } from "@/lib/agency/normalize-contact";
+import {
+  isBlankSales,
+  normalizeBulkImportRows,
+  normalizeName,
+} from "@/lib/agency/bulk-import";
 import { canCreateAgency, canPublishToOpenRace } from "@/lib/agency/permissions";
+import { buildClaimExpiry } from "@/lib/claims/helpers";
 
 function revalidateOpsPaths(agencyId?: string) {
   revalidatePath("/operations");
@@ -204,6 +210,124 @@ export async function returnAgencyForRevision(agencyId: string, reason?: string)
   });
 
   revalidateOpsPaths(agencyId);
+}
+
+export type BulkImportResult = {
+  imported: number;
+  skipped: number;
+  skippedDuplicates: string[];
+  skippedInvalid: number;
+};
+
+export async function bulkImportAgencies(
+  rows: Record<string, unknown>[],
+): Promise<BulkImportResult> {
+  const session = await requireOperations();
+  const normalizedRows = normalizeBulkImportRows(rows);
+
+  const salesUsers = await prisma.user.findMany({
+    where: { role: "SALES" },
+    select: { id: true, name: true },
+  });
+
+  const salesByName = new Map(
+    salesUsers.map((user) => [normalizeName(user.name), user]),
+  );
+
+  const existingAgencies = await prisma.agency.findMany({
+    select: { repPhone1: true, whatsappLink: true },
+  });
+
+  function isDuplicateInDb(repPhone1: string | null, whatsappLink: string | null): boolean {
+    return existingAgencies.some((agency) =>
+      contactsMatch(repPhone1, whatsappLink, agency.repPhone1, agency.whatsappLink),
+    );
+  }
+
+  function isDuplicateInBatch(
+    repPhone1: string | null,
+    whatsappLink: string | null,
+    batchKeys: Set<string>,
+  ): boolean {
+    const keys = [repPhone1, whatsappLink].filter(Boolean) as string[];
+    return keys.some((key) => batchKeys.has(key.replace(/\D/g, "") || key));
+  }
+
+  function trackBatchKeys(
+    repPhone1: string | null,
+    whatsappLink: string | null,
+    batchKeys: Set<string>,
+  ) {
+    if (repPhone1) batchKeys.add(repPhone1.replace(/\D/g, ""));
+    if (whatsappLink) {
+      const match = whatsappLink.match(/wa\.me\/(\d+)/i);
+      if (match) batchKeys.add(match[1]);
+      batchKeys.add(whatsappLink.replace(/\D/g, ""));
+    }
+  }
+
+  let imported = 0;
+  let skipped = 0;
+  const skippedDuplicates: string[] = [];
+  const batchKeys = new Set<string>();
+
+  for (const row of normalizedRows) {
+    if (
+      isDuplicateInDb(row.repPhone1, row.whatsappLink) ||
+      isDuplicateInBatch(row.repPhone1, row.whatsappLink, batchKeys)
+    ) {
+      skipped += 1;
+      skippedDuplicates.push(row.name);
+      continue;
+    }
+
+    const assignToSales = !isBlankSales(row.sales);
+    const salesUser = assignToSales
+      ? salesByName.get(normalizeName(row.sales!))
+      : undefined;
+
+    const status = salesUser ? ("ASSIGNED" as const) : ("OPEN_RACE" as const);
+
+    const agency = await prisma.agency.create({
+      data: {
+        name: row.name.trim(),
+        type: row.type,
+        location: row.location,
+        repPhone1: row.repPhone1,
+        whatsappLink: row.whatsappLink,
+        status,
+        createdById: session.user.id,
+        primaryOwnerId: salesUser?.id ?? null,
+        contractStatus: "MISSING",
+        claimExpiresAt: salesUser ? buildClaimExpiry() : null,
+        claimedAt: salesUser ? new Date() : null,
+      },
+    });
+
+    await createAuditLog(
+      agency.id,
+      session.user.id,
+      salesUser
+        ? `${session.user.name} bulk-imported ${row.name} → ASSIGNED (${salesUser.name})`
+        : `${session.user.name} bulk-imported ${row.name} → OPEN_RACE`,
+    );
+
+    existingAgencies.push({
+      repPhone1: row.repPhone1,
+      whatsappLink: row.whatsappLink,
+    });
+    trackBatchKeys(row.repPhone1, row.whatsappLink, batchKeys);
+    imported += 1;
+  }
+
+  revalidateOpsPaths();
+
+  return {
+    imported,
+    skipped,
+    skippedDuplicates,
+    skippedInvalid: rows.length - normalizedRows.length,
+  };
 }
 
 export { canCreateAgency };

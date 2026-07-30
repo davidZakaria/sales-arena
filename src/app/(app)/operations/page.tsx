@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AuditQueueTable } from "@/components/operations/audit-queue-table";
-import { BulkUploadMock } from "@/components/operations/bulk-upload-mock";
+import { BulkCsvUpload } from "@/components/operations/bulk-csv-upload";
 import { CreateLeadForm } from "@/components/operations/create-lead-form";
 import { DraftLeadsTable } from "@/components/operations/draft-leads-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -54,7 +54,7 @@ export default async function OperationsPage() {
 
         <TabsContent value="leads" className="mt-4 space-y-6">
           <CreateLeadForm />
-          <BulkUploadMock />
+          <BulkCsvUpload />
           <DraftLeadsTable drafts={drafts} />
         </TabsContent>
 

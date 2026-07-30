@@ -353,8 +353,3 @@ export async function archiveAgency(agencyId: string) {
   revalidatePath("/operations");
   revalidatePath("/open-race");
 }
-
-export async function revertExpiredClaims() {
-  // Deprecated for manager-assigned workflow; kept as no-op for layout compatibility
-  return { reverted: 0 };
-}
