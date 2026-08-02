@@ -504,10 +504,42 @@ async function main() {
   await prisma.inventoryTemplate.createMany({
     data: [
       {
+        title: "NJ Towers | 2-Bed Off-Plan",
+        project: "NJ Towers",
+        messageBody:
+          "New Jersey Towers — New Cairo\n\n2-bedroom · 120 sqm · Garden view\nPrice: 2,500,000 EGP\nDown payment: 10% · Installments over 8 years\nDelivery: Q2 2028\n\nUnit 12B still available. Reply for payment breakdown and site visit.",
+        mediaUrl: "https://example.com/inventory/nj-towers-2bed.pdf",
+        createdById: manager.id,
+      },
+      {
+        title: "NJ Marina | 3-Bed Duplex",
+        project: "NJ Marina",
+        messageBody:
+          "NJ Marina — North Coast\n\n3-bedroom duplex · 185 sqm · Sea view\nPrice: 3,400,000 EGP\nDown payment: 15% · Installments over 7 years\nDelivery: Summer 2027\n\nLimited sea-facing units. Reply for floor plan PDF.",
+        mediaUrl: "https://example.com/inventory/nj-marina-duplex.pdf",
+        createdById: manager.id,
+      },
+      {
+        title: "NJ Coast | Chalet",
+        project: "NJ Coast",
+        messageBody:
+          "NJ Coast — Hurghada\n\nChalet · 95 sqm · Pool & beach access\nPrice: 1,950,000 EGP\nDown payment: 20% · Installments over 6 years\nDelivery: Ready Q4 2026\n\nChalet 14 still held — reply to reserve.",
+        mediaUrl: "https://example.com/inventory/nj-coast-chalet.pdf",
+        createdById: director.id,
+      },
+      {
+        title: "NJ Gardens | Standalone Villa",
+        project: "NJ Gardens",
+        messageBody:
+          "NJ Gardens — Sheikh Zayed\n\nStandalone villa · 3 bed · 280 sqm built-up\nPrice: 4,800,000 EGP\nDown payment: 10% · Installments over 9 years\nDelivery: Q1 2029\n\nVilla 7 layout available — reply for brochure.",
+        mediaUrl: "https://example.com/inventory/nj-gardens-villa.pdf",
+        createdById: director.id,
+      },
+      {
         title: "Jura El Galala | 2-Bed RTM",
         project: "Jura",
         messageBody:
-          "Jura El Galala — 2-bedroom ready-to-move unit available.\n\nPrice: 4,850,000 EGP\nPayment: 10% down, 7-year installments\nDelivery: Immediate\n\nIncludes clubhouse access and sea view options. Limited units — reply for floor plans.",
+          "Jura El Galala — Ain Sokhna\n\n2-bedroom ready-to-move · Sea view\nPrice: 4,850,000 EGP\nPayment: 10% down · 7-year installments\nDelivery: Immediate handover\n\nMatches most broker requests under 5M. Reply for floor plans.",
         mediaUrl: "https://example.com/inventory/jura-2bed-rtm.pdf",
         createdById: manager.id,
       },
@@ -515,7 +547,7 @@ async function main() {
         title: "Green Avenue | 3-Bed Villa",
         project: "Green Avenue",
         messageBody:
-          "Green Avenue — standalone 3-bedroom villa.\n\nPrice: 12,500,000 EGP\nPayment: 15% down, 8-year installments\nDelivery: Q4 2027\n\nGarden, private parking, and New Capital location. Reply for site visit slots.",
+          "Green Avenue — New Capital\n\nStandalone 3-bedroom villa · Private garden\nPrice: 12,500,000 EGP\nDown payment: 15% · Installments over 8 years\nDelivery: Q4 2027\n\nReply for site visit slots this week.",
         mediaUrl: "https://example.com/inventory/green-avenue-villa.pdf",
         createdById: director.id,
       },
@@ -594,6 +626,7 @@ async function main() {
   console.log("  /operations     3 draft leads · 2 audit queue · compliance watch");
   console.log("  /finance        4 pending · 2 verified · 1 rejected · 2 converted EOIs");
   console.log("  /dashboard      Action required · pending audit · EOI metrics");
+  console.log("  /inventory      6 reply templates (NJ Towers, Marina, Coast, Gardens, Jura, Green Avenue)");
   console.log("  /manager        3 leads in queue · live inquiries · dispute · broker EOI stats");
   console.log("  /open-race      Redirects to /manager (managers) or /portfolio (sales)");
   console.log("  /agency/*       Broker contacts tab · compliance vault · EOIs");
