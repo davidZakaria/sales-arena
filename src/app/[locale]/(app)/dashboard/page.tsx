@@ -13,6 +13,7 @@ import {
   countPendingEoisForUser,
   getPendingEoisForUser,
 } from "@/lib/agency/eoi-queries";
+import { countAssignedInquiriesForSales } from "@/lib/inquiry/queries";
 import { redirectIfSpecialistRole } from "@/lib/navigation/role-home";
 import { EoiStatusBadge } from "@/components/agency/eoi-badges";
 import { AgencyStatusBadge } from "@/components/agency/badges";
@@ -87,6 +88,7 @@ export default async function DashboardPage({
     pendingEoiCount,
     actionAgencies,
     pendingEois,
+    assignedInquiryCount,
   ] = await Promise.all([
     prisma.agency.count({
       where: { status: "ASSIGNED", ...accessFilter },
@@ -109,6 +111,9 @@ export default async function DashboardPage({
       orderBy: { name: "asc" },
     }),
     getPendingEoisForUser(subjectUserId),
+    viewerRole === "SALES" && !viewingOtherUser
+      ? countAssignedInquiriesForSales(subjectUserId)
+      : Promise.resolve(0),
   ]);
 
   const metrics = [
@@ -132,6 +137,15 @@ export default async function DashboardPage({
           {
             label: t("leadsAwaitingAssignment"),
             value: managerQueueCount,
+            className: "metric-info",
+          },
+        ]
+      : []),
+    ...(viewerRole === "SALES" && !viewingOtherUser
+      ? [
+          {
+            label: t("inquiriesToRespond"),
+            value: assignedInquiryCount,
             className: "metric-info",
           },
         ]
@@ -259,6 +273,25 @@ export default async function DashboardPage({
           )}
         </CardContent>
       </Card>
+
+      {viewerRole === "SALES" && !viewingOtherUser && assignedInquiryCount > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+            <CardTitle>{t("inquiriesToRespond")}</CardTitle>
+            <Link
+              href="/portfolio"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              {t("openMyWork")}
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {t("inquiriesToRespondHint", { count: assignedInquiryCount })}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {pendingEois.length > 0 && (
         <Card>

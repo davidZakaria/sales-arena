@@ -36,7 +36,7 @@
     "backToMyDashboard": "Back to my dashboard",
     "viewPortfolio": "View portfolio",
     "viewDashboard": "View dashboard",
-    "backToMyPortfolio": "Back to my portfolio",
+    "backToMyPortfolio": "Back to My Work",
     "type": "Type {type}",
     "unknown": "Unknown",
     "you": "You",
@@ -77,7 +77,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "portfolio": "My Portfolio",
+    "portfolio": "My Work",
     "openRaceMarket": "Open Race Market",
     "managerDashboard": "Manager Dashboard",
     "operationsHub": "Operations Hub",
@@ -148,16 +148,30 @@
     "eoisPendingFinanceFor": "EOIs Pending Finance — {name}",
     "uploadCompliance": "Upload compliance documents",
     "awaitingAudit": "Awaiting Operations audit",
-    "reviewRequired": "Review required"
+    "reviewRequired": "Review required",
+    "inquiriesToRespond": "Inquiries to respond",
+    "inquiriesToRespondHint": "You have {count} property inquiries waiting in My Work. Use inventory templates to reply on WhatsApp.",
+    "openMyWork": "Open My Work"
   },
   "portfolio": {
-    "title": "My Portfolio",
+    "title": "My Work",
     "titleFor": "{name}'s Portfolio",
-    "subtitleOwned": "Agencies where you are Primary Owner or Co-Pilot.",
+    "subtitleOwned": "Broker agencies where you are Primary Owner or Co-Pilot.",
+    "subtitleSales": "Property inquiries assigned to you and broker agencies you own or co-pilot.",
     "subtitleViewing": "Viewing portfolio for {name}.",
-    "empty": "No agencies assigned yet. Your manager assigns leads from their assignment queue.",
+    "empty": "No agencies assigned yet. Your manager assigns broker leads from the Manager Dashboard.",
+    "emptySales": "No broker agencies yet. When your manager assigns leads or property inquiries, they appear here.",
     "emptyFor": "{name} has no assigned agencies yet.",
-    "primaryOwnerLabel": "Primary owner: {name}"
+    "primaryOwnerLabel": "Primary owner: {name}",
+    "metricInquiries": "Inquiries to respond",
+    "metricInquiriesHint": "From WhatsApp — respond with templates",
+    "metricAssignedAgencies": "Assigned agencies",
+    "metricAssignedHint": "Compliance collection in progress",
+    "metricPendingAudit": "Pending audit",
+    "metricVerified": "Verified",
+    "agenciesSection": "My broker agencies",
+    "agenciesSectionHint": "Accounts assigned by your manager — upload compliance and submit EOIs.",
+    "openInventory": "Inventory templates"
   },
   "search": {
     "placeholder": "Search by agency, rep, or location…",

@@ -7,7 +7,6 @@ import {
   Briefcase,
   ClipboardCheck,
   Coins,
-  Inbox,
   LayoutDashboard,
   Package,
   Scale,
@@ -22,16 +21,14 @@ type NavItem = {
     | "/manager"
     | "/operations"
     | "/finance"
-    | "/inventory"
-    | "/inquiries";
+    | "/inventory";
   labelKey:
     | "dashboard"
     | "portfolio"
     | "managerDashboard"
     | "operationsHub"
     | "financeHub"
-    | "inventoryLibrary"
-    | "inquiriesHub";
+    | "inventoryLibrary";
   icon: React.ComponentType<{ className?: string }>;
   badge?: number;
 };
@@ -77,9 +74,9 @@ export function SidebarNav({ badges = {}, onNavigate, className }: SidebarNavPro
     if (role === "SALES") {
       navItems.push(
         {
-          href: "/inquiries",
-          labelKey: "inquiriesHub",
-          icon: Inbox,
+          href: "/portfolio",
+          labelKey: "portfolio",
+          icon: Briefcase,
           badge: badges.assignedInquiryCount,
         },
         {

@@ -36,7 +36,7 @@
     "backToMyDashboard": "العودة إلى لوحتي",
     "viewPortfolio": "عرض المحفظة",
     "viewDashboard": "عرض لوحة التحكم",
-    "backToMyPortfolio": "العودة إلى محفظتي",
+    "backToMyPortfolio": "العودة إلى عملي",
     "type": "النوع {type}",
     "unknown": "غير معروف",
     "you": "أنت",
@@ -77,7 +77,7 @@
   },
   "nav": {
     "dashboard": "لوحة التحكم",
-    "portfolio": "محفظتي",
+    "portfolio": "عملي",
     "openRaceMarket": "السوق المفتوح",
     "managerDashboard": "لوحة المدير",
     "operationsHub": "مركز العمليات",
@@ -148,16 +148,30 @@
     "eoisPendingFinanceFor": "إستمارات حجز بانتظار المالية — {name}",
     "uploadCompliance": "رفع مستندات الامتثال",
     "awaitingAudit": "بانتظار مراجعة العمليات",
-    "reviewRequired": "يتطلب مراجعة"
+    "reviewRequired": "يتطلب مراجعة",
+    "inquiriesToRespond": "استفسارات بانتظار الرد",
+    "inquiriesToRespondHint": "لديك {count} استفساراً عقارياً في عملي. استخدم قوالب المخزون للرد على واتساب.",
+    "openMyWork": "فتح عملي"
   },
   "portfolio": {
-    "title": "محفظتي",
+    "title": "عملي",
     "titleFor": "محفظة {name}",
-    "subtitleOwned": "الوكالات التي أنت المسؤول الأساسي أو مسؤول مشارك فيها.",
+    "subtitleOwned": "وكالات الوسطاء التي أنت المسؤول الأساسي أو مسؤول مشارك فيها.",
+    "subtitleSales": "استفسارات العقارات المعيّنة لك ووكالات الوسطاء التي تملكها أو تشارك فيها.",
     "subtitleViewing": "عرض محفظة {name}.",
-    "empty": "لا توجد وكالات معيّنة بعد. يعيّن مديرك leads من قائمة التعيين.",
+    "empty": "لا توجد وكالات معيّنة بعد. يعيّن مديرك leads الوسطاء من لوحة المدير.",
+    "emptySales": "لا توجد وكالات وسطاء بعد. عندما يعيّن مديرك leads أو استفسارات عقارية، تظهر هنا.",
     "emptyFor": "لا توجد وكالات معيّنة لـ {name} بعد.",
-    "primaryOwnerLabel": "المسؤول الأساسي: {name}"
+    "primaryOwnerLabel": "المسؤول الأساسي: {name}",
+    "metricInquiries": "استفسارات بانتظار الرد",
+    "metricInquiriesHint": "من واتساب — رد باستخدام القوالب",
+    "metricAssignedAgencies": "وكالات معيّنة",
+    "metricAssignedHint": "جمع مستندات الامتثال جارٍ",
+    "metricPendingAudit": "بانتظار المراجعة",
+    "metricVerified": "معتمدة",
+    "agenciesSection": "وكالات الوسطاء",
+    "agenciesSectionHint": "حسابات عيّنها مديرك — ارفع المستندات وقدّم إستمارات الحجز.",
+    "openInventory": "قوالب المخزون"
   },
   "search": {
     "placeholder": "ابحث بالوكالة أو المندوب أو الموقع…",
