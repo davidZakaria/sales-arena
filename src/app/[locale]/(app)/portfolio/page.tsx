@@ -58,6 +58,9 @@ export default async function PortfolioPage({
 
   const agencies = await prisma.agency.findMany({
     where: userAgencyAccessFilter(subjectUserId),
+    include: {
+      primaryOwner: { select: { name: true } },
+    },
     orderBy: { name: "asc" },
   });
 
@@ -126,6 +129,11 @@ export default async function PortfolioPage({
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <p>{agency.location ?? tCommon("locationTbd")}</p>
+                    {!isPrimary && agency.primaryOwner && (
+                      <p className="text-xs">
+                        {t("primaryOwnerLabel", { name: agency.primaryOwner.name })}
+                      </p>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <PortfolioRoleBadge role={isPrimary ? "primary" : "co-pilot"} />
                       <AgencyStatusBadge status={agency.status} />

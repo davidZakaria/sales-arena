@@ -211,7 +211,8 @@ export function getAgencyPermissions(
 
   return {
     role: "non-owner",
-    canView: true,
+    canView:
+      agency.status !== "OPEN_RACE" && agency.status !== "DRAFT",
     canEditComplianceFields: false,
     canUploadDocuments: false,
     canManageCoOwners: false,

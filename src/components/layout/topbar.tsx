@@ -4,7 +4,9 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { useCallback, useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import type { AgencyStatus } from "@/generated/prisma/client";
 import { Building2, LogOut, Menu, Search, UserRound } from "lucide-react";
+import { AgencyStatusBadge } from "@/components/agency/badges";
 import { LocaleSwitcher } from "@/components/layout/locale-switcher";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { getRoleHomePath } from "@/lib/navigation/role-home";
@@ -31,13 +33,51 @@ import { cn } from "@/lib/utils";
 
 type SearchResult = {
   users: Array<{ id: string; name: string; email: string; role: string }>;
-  agencies: Array<{ id: string; name: string; location: string | null; type: string | null }>;
+  agencies: Array<{
+    id: string;
+    name: string;
+    location: string | null;
+    type: string | null;
+    status: AgencyStatus;
+    primaryOwnerName: string | null;
+  }>;
 };
+
+function agencySearchSubtitle(
+  agency: SearchResult["agencies"][number],
+  tStatus: (key: string) => string,
+  tSearch: (key: string, values?: Record<string, string>) => string,
+) {
+  const statusKey =
+    agency.status === "OPEN_RACE"
+      ? "openRace"
+      : agency.status === "DRAFT"
+        ? "draft"
+        : agency.status === "ASSIGNED"
+          ? "assigned"
+          : agency.status === "PENDING_AUDIT"
+            ? "pendingAudit"
+            : agency.status === "VERIFIED"
+              ? "verified"
+              : agency.status === "ARCHIVED"
+                ? "archived"
+                : "draft";
+
+  const statusLabel = tStatus(statusKey);
+  const repLabel = agency.primaryOwnerName
+    ? tSearch("assignedTo", { name: agency.primaryOwnerName })
+    : tSearch("unassignedLead");
+
+  const location = agency.location ?? agency.type;
+  return [statusLabel, repLabel, location].filter(Boolean).join(" · ");
+}
 
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const router = useRouter();
   const t = useTranslations("common");
   const tNav = useTranslations("nav");
+  const tStatus = useTranslations("status");
+  const tSearch = useTranslations("search");
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -78,6 +118,8 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
         if (response.ok) {
           setResults(await response.json());
+        } else {
+          setResults({ users: [], agencies: [] });
         }
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
@@ -108,6 +150,8 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
     router.push("/login");
     router.refresh();
   }, [router]);
+
+  const showUsers = session?.user?.role !== "SALES" || results.users.length > 0;
 
   return (
     <>
@@ -187,7 +231,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
         shouldFilter={false}
       >
         <CommandInput
-          placeholder={t("searchPlaceholder")}
+          placeholder={tSearch("placeholder")}
           value={query}
           onValueChange={setQuery}
         />
@@ -199,7 +243,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           ) : (
             <CommandEmpty>{t("noResults")}</CommandEmpty>
           )}
-          {results.users.length > 0 && (
+          {showUsers && results.users.length > 0 && (
             <CommandGroup heading={t("users")}>
               {results.users.map((user) => (
                 <CommandItem
@@ -227,7 +271,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
               ))}
             </CommandGroup>
           )}
-          {results.users.length > 0 && results.agencies.length > 0 && (
+          {showUsers && results.users.length > 0 && results.agencies.length > 0 && (
             <CommandSeparator />
           )}
           {results.agencies.length > 0 && (
@@ -238,11 +282,14 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
                   value={`${agency.name} ${agency.location ?? ""}`}
                   onSelect={() => navigate(`/agency/${agency.id}`)}
                 >
-                  <Building2 className="me-2 h-4 w-4" />
-                  <div>
-                    <p>{agency.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {[agency.type, agency.location].filter(Boolean).join(" · ")}
+                  <Building2 className="me-2 h-4 w-4 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate">{agency.name}</p>
+                      <AgencyStatusBadge status={agency.status} />
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {agencySearchSubtitle(agency, tStatus, tSearch)}
                     </p>
                   </div>
                 </CommandItem>

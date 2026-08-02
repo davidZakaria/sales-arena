@@ -15,6 +15,7 @@ import { canDirectAssign } from "@/lib/agency/permissions";
 import { EoiStatusBadge } from "@/components/agency/eoi-badges";
 import { BrokerEoiPerformanceTable } from "@/components/manager/broker-eoi-performance-table";
 import { ManagerDisputesTable } from "@/components/manager/manager-disputes-table";
+import { ManagerTeamAssignmentsTable } from "@/components/manager/manager-team-assignments-table";
 import { ManagerLeadAssignmentTable } from "@/components/manager/manager-lead-assignment-table";
 import { SlaBreachedAssignmentsTable } from "@/components/manager/sla-breached-assignments-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,6 +92,42 @@ async function getUnassignedLeads() {
   });
 }
 
+async function getTeamAssignments(viewerId: string, viewerRole: string) {
+  const now = new Date();
+  const teamScope =
+    viewerRole === "DIRECTOR"
+      ? {}
+      : {
+          OR: [
+            { primaryOwner: { managerId: viewerId } },
+            { coOwners: { some: { managerId: viewerId } } },
+          ],
+        };
+
+  const agencies = await prisma.agency.findMany({
+    where: {
+      status: { in: ["ASSIGNED", "PENDING_AUDIT", "VERIFIED"] },
+      ...teamScope,
+    },
+    include: {
+      primaryOwner: { select: { name: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return agencies.map((agency) => ({
+    id: agency.id,
+    name: agency.name,
+    location: agency.location,
+    status: agency.status,
+    primaryOwnerName: agency.primaryOwner?.name ?? null,
+    daysOverdue:
+      agency.status === "ASSIGNED" && agency.claimExpiresAt && agency.claimExpiresAt < now
+        ? getDaysOverdue(agency.claimExpiresAt)
+        : null,
+  }));
+}
+
 export default async function ManagerPage() {
   const session = await getServerSession(authOptions);
 
@@ -114,6 +151,7 @@ export default async function ManagerPage() {
     pendingEoiCount,
     pendingEois,
     brokerStats,
+    teamAssignments,
   ] = await Promise.all([
     getUnassignedLeads(),
     canDirectAssign(viewerRole)
@@ -131,6 +169,7 @@ export default async function ManagerPage() {
     countPendingEoisForManager(viewerId, viewerRole),
     getPendingEoisForManager(viewerId, viewerRole),
     getBrokerEoiStatsForManager(viewerId, viewerRole),
+    getTeamAssignments(viewerId, viewerRole),
   ]);
 
   const t = await getTranslations("manager");
@@ -182,6 +221,8 @@ export default async function ManagerPage() {
       </div>
 
       <ManagerLeadAssignmentTable leads={unassignedLeads} salesUsers={salesUsers} />
+
+      <ManagerTeamAssignmentsTable agencies={teamAssignments} />
 
       <Card>
         <CardHeader>

@@ -83,7 +83,7 @@ export default async function DashboardPage({
     actionRequiredCount,
     pendingAuditCount,
     verifiedCount,
-    openRaceCount,
+    managerQueueCount,
     pendingEoiCount,
     actionAgencies,
     pendingEois,
@@ -97,7 +97,9 @@ export default async function DashboardPage({
     prisma.agency.count({
       where: { status: "VERIFIED", ...accessFilter },
     }),
-    prisma.agency.count({ where: { status: "OPEN_RACE" } }),
+    viewerRole === "MANAGER" || viewerRole === "DIRECTOR"
+      ? prisma.agency.count({ where: { status: "OPEN_RACE" } })
+      : Promise.resolve(0),
     countPendingEoisForUser(subjectUserId),
     prisma.agency.findMany({
       where: {
@@ -125,11 +127,15 @@ export default async function DashboardPage({
       value: verifiedCount,
       className: "metric-success",
     },
-    {
-      label: t("openRaceAvailable"),
-      value: openRaceCount,
-      className: "metric-info",
-    },
+    ...(viewerRole === "MANAGER" || viewerRole === "DIRECTOR"
+      ? [
+          {
+            label: t("leadsAwaitingAssignment"),
+            value: managerQueueCount,
+            className: "metric-info",
+          },
+        ]
+      : []),
     {
       label: t("eoisPendingFinance"),
       value: pendingEoiCount,

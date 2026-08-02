@@ -72,7 +72,8 @@
     "phone": "الهاتف",
     "created": "تاريخ الإنشاء",
     "view": "عرض",
-    "type": "النوع"
+    "type": "النوع",
+    "sla": "اتفاقية مستوى الخدمة"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
@@ -136,7 +137,7 @@
     "actionRequired": "يتطلب إجراء (مستندات ناقصة)",
     "pendingAudit": "وكالات قيد المراجعة",
     "verifiedAgencies": "وكالات موثّقة",
-    "openRaceAvailable": "بانتظار تعيين المدير",
+    "leadsAwaitingAssignment": "Leads بانتظار التعيين",
     "eoisPendingFinance": "إستمارات حجز بانتظار المالية",
     "needsImmediateAction": "يتطلب إجراء فوري",
     "needsImmediateActionFor": "يتطلب إجراء فوري — {name}",
@@ -153,7 +154,13 @@
     "subtitleOwned": "الوكالات التي أنت المسؤول الأساسي أو مسؤول مشارك فيها.",
     "subtitleViewing": "عرض محفظة {name}.",
     "empty": "لا توجد وكالات معيّنة بعد. يعيّن مديرك leads من قائمة التعيين.",
-    "emptyFor": "لا توجد وكالات معيّنة لـ {name} بعد."
+    "emptyFor": "لا توجد وكالات معيّنة لـ {name} بعد.",
+    "primaryOwnerLabel": "المسؤول الأساسي: {name}"
+  },
+  "search": {
+    "placeholder": "ابحث بالوكالة أو المندوب أو الموقع…",
+    "assignedTo": "معيّن · {name}",
+    "unassignedLead": "غير معيّن"
   },
   "openRace": {
     "title": "السوق المفتوح",
@@ -192,7 +199,12 @@
     "brokerPerformance": "أداء وسطاء إستمارات الحجز",
     "brokerPerformanceDescription": "حجم إستمارات الحجز والاعتماد حسب جهة اتصال الوسيط في وكالات فريقك.",
     "brokerPerformanceEmpty": "لا توجد جهات اتصال وسطاء لديها إستمارات حجز في وكالات فريقك بعد.",
-    "noEligibleReps": "لا يوجد مندوبون مؤهلون"
+    "noEligibleReps": "لا يوجد مندوبون مؤهلون",
+    "teamAssignmentsSection": "تعيينات الفريق",
+    "teamAssignmentsHint": "جميع الوكالات النشطة في فريقك — من يملك كل حساب وحالة اتفاقية مستوى الخدمة.",
+    "teamAssignmentsEmpty": "لا توجد وكالات معيّنة في فريقك بعد. عيّن leads من القائمة أعلاه.",
+    "slaDaysOverdue": "متأخر {days} يوم",
+    "slaOnTrack": "ضمن الموعد"
   },
   "operations": {
     "title": "مركز قيادة العمليات",
@@ -309,6 +321,12 @@
     "coPilot": "مسؤول مشارك",
     "coPilots": "مسؤولون مشاركون",
     "accountTeam": "فريق الحساب",
+    "assignLead": "تعيين هذا lead",
+    "reportingManager": "المدير",
+    "reportingDirector": "المدير التنفيذي",
+    "unassignedRep": "غير معيّن",
+    "removeCoPilotFailed": "تعذّر إزالة المسؤول المشارك.",
+    "removeCoPilot": "إزالة {name} كمسؤول مشارك",
     "noCoPilots": "لا يوجد مسؤولون مشاركون بعد.",
     "rolePrimary": "الدور: أساسي",
     "roleCoPilot": "الدور: مشارك",

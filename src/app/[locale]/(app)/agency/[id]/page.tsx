@@ -15,7 +15,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authOptions } from "@/lib/auth";
-import { getAgencyPermissions, canArchiveAgency } from "@/lib/agency/permissions";
+import { getAgencyPermissions, canArchiveAgency, canDirectAssign } from "@/lib/agency/permissions";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 
@@ -89,24 +89,33 @@ export default async function AgencyPage({
 
   const [agency, salesUsers] = await Promise.all([
     getAgency(id),
-    prisma.user.findMany({
-      where: {
-        role: "SALES",
-        ...(userRole === "MANAGER" && userId ? { managerId: userId } : {}),
-      },
-      select: { id: true, name: true, email: true },
-      orderBy: { name: "asc" },
-    }),
+    userRole === "MANAGER" || userRole === "DIRECTOR" || userRole === "SALES"
+      ? prisma.user.findMany({
+          where: {
+            role: "SALES",
+            ...(userRole === "MANAGER" && userId ? { managerId: userId } : {}),
+          },
+          select: { id: true, name: true, email: true },
+          orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
   ]);
 
   if (!agency) {
     notFound();
   }
 
+  const permissions = getAgencyPermissions(agency, userId, userRole);
+
+  if (!permissions.canView) {
+    notFound();
+  }
+
   const primaryOwner = agency.primaryOwner;
   const manager = primaryOwner?.manager;
   const director = manager?.manager;
-  const permissions = getAgencyPermissions(agency, userId, userRole);
+  const showSalesUsers =
+    canDirectAssign(userRole) || permissions.canManageCoOwners;
 
   return (
     <div className="space-y-6">
@@ -193,29 +202,13 @@ export default async function AgencyPage({
                   )}
                 </div>
               </div>
-              <div className="border-t pt-4">
-                <p className="mb-3 font-medium text-foreground">Internal Team Hierarchy</p>
-                <div className="space-y-2 rounded-lg bg-muted p-4">
-                  <p>
-                    <span className="text-muted-foreground">Sales:</span>{" "}
-                    {primaryOwner?.name ?? "Unassigned"}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Manager:</span>{" "}
-                    {manager?.name ?? "—"}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Director:</span>{" "}
-                    {director?.name ?? "—"}
-                  </p>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
           <AccountTeamCard
             agencyId={agency.id}
             agencyName={agency.name}
+            agencyStatus={agency.status}
             primaryOwner={
               primaryOwner
                 ? {
@@ -225,9 +218,20 @@ export default async function AgencyPage({
                   }
                 : null
             }
+            manager={
+              manager
+                ? { id: manager.id, name: manager.name, email: manager.email }
+                : null
+            }
+            director={
+              director
+                ? { id: director.id, name: director.name, email: director.email }
+                : null
+            }
             coOwners={agency.coOwners}
             permissions={permissions}
-            salesUsers={salesUsers}
+            salesUsers={showSalesUsers ? salesUsers : []}
+            viewerRole={userRole}
           />
         </div>
 

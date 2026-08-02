@@ -72,7 +72,8 @@
     "phone": "Phone",
     "created": "Created",
     "view": "View",
-    "type": "Type"
+    "type": "Type",
+    "sla": "SLA"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -136,7 +137,7 @@
     "actionRequired": "Action Required (Missing Docs)",
     "pendingAudit": "Agencies Pending Audit",
     "verifiedAgencies": "Verified Agencies",
-    "openRaceAvailable": "Awaiting manager assignment",
+    "leadsAwaitingAssignment": "Leads awaiting assignment",
     "eoisPendingFinance": "EOIs Pending Finance",
     "needsImmediateAction": "Needs Immediate Action",
     "needsImmediateActionFor": "Needs Immediate Action — {name}",
@@ -153,7 +154,13 @@
     "subtitleOwned": "Agencies where you are Primary Owner or Co-Pilot.",
     "subtitleViewing": "Viewing portfolio for {name}.",
     "empty": "No agencies assigned yet. Your manager assigns leads from their assignment queue.",
-    "emptyFor": "{name} has no assigned agencies yet."
+    "emptyFor": "{name} has no assigned agencies yet.",
+    "primaryOwnerLabel": "Primary owner: {name}"
+  },
+  "search": {
+    "placeholder": "Search by agency, rep, or location…",
+    "assignedTo": "Assigned · {name}",
+    "unassignedLead": "Unassigned"
   },
   "openRace": {
     "title": "Open Race Market",
@@ -192,7 +199,12 @@
     "brokerPerformance": "Broker EOI Performance",
     "brokerPerformanceDescription": "EOI volume and clearance by broker contact across your team's agencies.",
     "brokerPerformanceEmpty": "No broker contacts with EOIs on your team's agencies yet.",
-    "noEligibleReps": "No eligible sales reps"
+    "noEligibleReps": "No eligible sales reps",
+    "teamAssignmentsSection": "Team assignments",
+    "teamAssignmentsHint": "All active agencies on your team — who owns each account and SLA status.",
+    "teamAssignmentsEmpty": "No assigned agencies on your team yet. Assign leads from the queue above.",
+    "slaDaysOverdue": "{days}d overdue",
+    "slaOnTrack": "On track"
   },
   "operations": {
     "title": "Operations Command Center",
@@ -309,6 +321,12 @@
     "coPilot": "Co-Pilot",
     "coPilots": "Co-Pilots",
     "accountTeam": "Account Team",
+    "assignLead": "Assign this lead",
+    "reportingManager": "Manager",
+    "reportingDirector": "Director",
+    "unassignedRep": "Unassigned",
+    "removeCoPilotFailed": "Failed to remove co-pilot.",
+    "removeCoPilot": "Remove {name} as co-pilot",
     "noCoPilots": "No co-pilots assigned yet.",
     "rolePrimary": "Role: Primary",
     "roleCoPilot": "Role: Co-Pilot",

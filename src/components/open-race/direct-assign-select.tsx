@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { directAssignAgency } from "@/lib/actions/assignment";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,6 +22,7 @@ type DirectAssignSelectProps = {
 
 export function DirectAssignSelect({ agencyId, salesUsers }: DirectAssignSelectProps) {
   const router = useRouter();
+  const t = useTranslations("manager");
   const [isPending, startTransition] = useTransition();
 
   function handleAssign(userId: string | null) {
@@ -33,10 +35,10 @@ export function DirectAssignSelect({ agencyId, salesUsers }: DirectAssignSelectP
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs text-muted-foreground">Direct Assign</Label>
+      <Label className="text-xs text-muted-foreground">{t("assignToRep")}</Label>
       <Select disabled={isPending || salesUsers.length === 0} onValueChange={handleAssign}>
         <SelectTrigger className="min-h-11 sm:h-9">
-          <SelectValue placeholder="Assign to rep…" />
+          <SelectValue placeholder={t("selectRep")} />
         </SelectTrigger>
         <SelectContent>
           {salesUsers.map((user) => (
@@ -47,7 +49,7 @@ export function DirectAssignSelect({ agencyId, salesUsers }: DirectAssignSelectP
         </SelectContent>
       </Select>
       {salesUsers.length === 0 && (
-        <p className="text-xs text-muted-foreground">No eligible sales reps</p>
+        <p className="text-xs text-muted-foreground">{t("noEligibleReps")}</p>
       )}
     </div>
   );

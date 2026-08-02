@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { userAgencyAccessFilter } from "@/lib/agency/queries";
+import { managerTeamAgencyFilter, userAgencyAccessFilter } from "@/lib/agency/queries";
 
 export async function countPendingEoisForUser(userId: string) {
   return prisma.eOI.count({
@@ -24,18 +24,6 @@ export async function getPendingEoisForUser(userId: string, limit = 5) {
   });
 }
 
-function managerTeamAgencyFilter(viewerId: string, viewerRole: string) {
-  if (viewerRole === "DIRECTOR") {
-    return {};
-  }
-
-  return {
-    OR: [
-      { primaryOwner: { managerId: viewerId } },
-      { coOwners: { some: { managerId: viewerId } } },
-    ],
-  };
-}
 
 export type BrokerEoiStatRow = {
   brokerContactId: string;
