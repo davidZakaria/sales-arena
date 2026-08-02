@@ -1,14 +1,17 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { AgencyStatus, ComplianceDocumentType, ContractStatus } from "@/generated/prisma/client";
 import type { AgencyPermissions } from "@/lib/agency/permissions";
-import { updateAgencyCompliance, uploadComplianceDocument } from "@/lib/actions/agency";
+import { REQUIRED_DOCUMENT_TYPES } from "@/lib/agency/normalize-contact";
+import { updateAgencyCompliance } from "@/lib/actions/agency";
 import {
   returnAgencyForRevision,
   verifyAgencyCompliance,
 } from "@/lib/actions/operations";
+import { ComplianceDocumentSlot } from "@/components/agency/compliance-document-slot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ComplianceDocumentRow = {
@@ -42,12 +44,38 @@ type ComplianceVaultProps = {
   permissions: AgencyPermissions;
 };
 
-const DOCUMENT_TYPE_LABELS: Record<ComplianceDocumentType, string> = {
-  CONTRACT: "Contract",
-  TAX_ID: "Tax ID",
-  COMMERCIAL_REGISTER: "Commercial Register",
-  OTHER: "Other",
-};
+const SALES_DOC_SLOTS: {
+  type: ComplianceDocumentType;
+  titleKey: "docTaxIdTitle" | "docCommercialRegisterTitle" | "docContractTitle";
+  subtitleKey: "docTaxIdHint" | "docCommercialRegisterHint" | "docContractHint";
+}[] = [
+  {
+    type: "TAX_ID",
+    titleKey: "docTaxIdTitle",
+    subtitleKey: "docTaxIdHint",
+  },
+  {
+    type: "COMMERCIAL_REGISTER",
+    titleKey: "docCommercialRegisterTitle",
+    subtitleKey: "docCommercialRegisterHint",
+  },
+  {
+    type: "CONTRACT",
+    titleKey: "docContractTitle",
+    subtitleKey: "docContractHint",
+  },
+];
+
+function latestDocumentForType(
+  documents: ComplianceDocumentRow[],
+  type: ComplianceDocumentType,
+) {
+  const matches = documents.filter((doc) => doc.documentType === type);
+  if (matches.length === 0) return null;
+  return matches.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )[0];
+}
 
 export function ComplianceVault({
   agencyId,
@@ -59,18 +87,13 @@ export function ComplianceVault({
   permissions,
 }: ComplianceVaultProps) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations("agency");
   const [cr, setCr] = useState(commercialRegister ?? "");
   const [tax, setTax] = useState(taxId ?? "");
   const [status, setStatus] = useState<ContractStatus>(contractStatus);
-  const [documentType, setDocumentType] = useState<ComplianceDocumentType>("TAX_ID");
   const [message, setMessage] = useState("");
   const [returnReason, setReturnReason] = useState("");
   const [isPending, startTransition] = useTransition();
-
-  const fieldsLocked =
-    !permissions.canEditComplianceFields ||
-    (permissions.isPrimaryOwner && agencyStatus === "ASSIGNED");
 
   const uploadLocked =
     !permissions.canUploadDocuments ||
@@ -80,6 +103,12 @@ export function ComplianceVault({
   const waitingForAudit =
     agencyStatus === "PENDING_AUDIT" && permissions.isPrimaryOwner;
 
+  const uploadedTypes = new Set(documents.map((doc) => doc.documentType));
+  const uploadedCount = REQUIRED_DOCUMENT_TYPES.filter((type) =>
+    uploadedTypes.has(type),
+  ).length;
+  const missingTypes = REQUIRED_DOCUMENT_TYPES.filter((type) => !uploadedTypes.has(type));
+
   function handleSave() {
     startTransition(async () => {
       try {
@@ -88,10 +117,10 @@ export function ComplianceVault({
           taxId: tax,
           contractStatus: status,
         });
-        setMessage("Compliance data saved.");
+        setMessage(t("complianceSaved"));
         router.refresh();
       } catch {
-        setMessage("Failed to save compliance data.");
+        setMessage(t("complianceSaveFailed"));
       }
     });
   }
@@ -106,7 +135,7 @@ export function ComplianceVault({
         });
         router.refresh();
       } catch (err) {
-        setMessage(err instanceof Error ? err.message : "Verification failed.");
+        setMessage(err instanceof Error ? err.message : t("verifyFailed"));
       }
     });
   }
@@ -118,20 +147,7 @@ export function ComplianceVault({
         setReturnReason("");
         router.refresh();
       } catch (err) {
-        setMessage(err instanceof Error ? err.message : "Return failed.");
-      }
-    });
-  }
-
-  function handleMockUpload() {
-    const fileName = fileInputRef.current?.files?.[0]?.name ?? `${documentType.toLowerCase()}-upload.pdf`;
-    startTransition(async () => {
-      try {
-        await uploadComplianceDocument(agencyId, documentType, fileName);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        router.refresh();
-      } catch (err) {
-        setMessage(err instanceof Error ? err.message : "Upload failed.");
+        setMessage(err instanceof Error ? err.message : t("returnFailed"));
       }
     });
   }
@@ -144,157 +160,134 @@ export function ComplianceVault({
     >
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
-          <CardTitle>Legal & Compliance Vault</CardTitle>
+          <CardTitle>{t("complianceVaultFull")}</CardTitle>
           {permissions.isAuditMode && (
-            <Badge className="status-warning hover:opacity-90">Audit Mode</Badge>
-          )}
-          {fieldsLocked && permissions.isPrimaryOwner && agencyStatus === "ASSIGNED" && (
-            <Badge variant="outline" className="status-neutral">
-              Locked for Ops Audit
-            </Badge>
+            <Badge className="status-warning hover:opacity-90">{t("auditMode")}</Badge>
           )}
         </div>
-        <CardDescription>
-          Track السجل التجاري, الرقم الضريبي, and contract status for this agency.
-          {waitingForAudit && (
-            <span className="mt-1 block font-medium text-warning">
-              Documents submitted. Waiting for Operations Audit.
-            </span>
-          )}
-        </CardDescription>
+        <CardDescription>{t("complianceDescription")}</CardDescription>
+        {waitingForAudit && (
+          <p className="text-sm font-medium text-warning">{t("waitingForAudit")}</p>
+        )}
       </CardHeader>
       <CardContent className="space-y-6">
-        {documents.length > 0 && (
-          <div className="space-y-2">
-            <Label>Uploaded Documents</Label>
-            <ul className="divide-y divide-border rounded-lg border border-border bg-muted/50">
-              {documents.map((doc) => (
-                <li key={doc.id} className="flex items-center gap-3 px-4 py-3 text-sm">
-                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-foreground">{doc.fileName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {DOCUMENT_TYPE_LABELS[doc.documentType]} · {doc.uploadedBy.name} ·{" "}
-                      {new Date(doc.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+        <div className="rounded-xl border border-border bg-muted/40 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">{t("docUploadProgress")}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t("docUploadProgressHint")}
+              </p>
+            </div>
+            <Badge variant="outline" className="status-info text-sm">
+              {t("docUploadCount", { uploaded: uploadedCount, total: REQUIRED_DOCUMENT_TYPES.length })}
+            </Badge>
           </div>
-        )}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="commercialRegister">السجل التجاري (Commercial Register)</Label>
-            <Input
-              id="commercialRegister"
-              value={cr}
-              onChange={(event) => setCr(event.target.value)}
-              placeholder="Enter commercial register number"
-              disabled={fieldsLocked}
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{
+                width: `${(uploadedCount / REQUIRED_DOCUMENT_TYPES.length) * 100}%`,
+              }}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="taxId">الرقم الضريبي (Tax ID)</Label>
-            <Input
-              id="taxId"
-              value={tax}
-              onChange={(event) => setTax(event.target.value)}
-              placeholder="Enter tax ID"
-              disabled={fieldsLocked}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Contract Status</Label>
-            <Select
-              value={status}
-              onValueChange={(value) => setStatus(value as ContractStatus)}
-              disabled={fieldsLocked || permissions.canVerifyAgency}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select contract status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SIGNED">Contract Signed</SelectItem>
-                <SelectItem value="PENDING">Contract Pending</SelectItem>
-                <SelectItem value="MISSING">Contract Missing</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {missingTypes.length > 0 ? (
+            <p className="mt-3 text-sm text-warning">
+              {t("docStillMissing")}{" "}
+              {missingTypes
+                .map((type) =>
+                  type === "TAX_ID"
+                    ? t("docTaxIdTitle")
+                    : type === "COMMERCIAL_REGISTER"
+                      ? t("docCommercialRegisterTitle")
+                      : t("docContractTitle"),
+                )
+                .join(" · ")}
+            </p>
+          ) : (
+            <p className="mt-3 text-sm text-success">{t("docAllUploaded")}</p>
+          )}
         </div>
 
-        {!uploadLocked && (
-          <div className="rounded-xl border border-dashed border-border bg-muted/50 p-6">
-            <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="mt-3 text-center text-sm font-medium text-foreground">
-              Upload contract PDFs or Tax ID photos
-            </p>
-            <p className="mt-1 text-center text-xs text-muted-foreground">
-              Mock upload — metadata only until file storage is wired
-            </p>
-            <div className="mx-auto mt-4 flex max-w-md flex-col gap-3 sm:flex-row">
+        <div className="grid gap-4 lg:grid-cols-3">
+          {SALES_DOC_SLOTS.map((slot) => (
+            <ComplianceDocumentSlot
+              key={slot.type}
+              agencyId={agencyId}
+              documentType={slot.type}
+              titleKey={slot.titleKey}
+              subtitleKey={slot.subtitleKey}
+              document={latestDocumentForType(documents, slot.type)}
+              canUpload={!uploadLocked}
+              onError={setMessage}
+            />
+          ))}
+        </div>
+
+        {permissions.canVerifyAgency && (
+          <div className="grid gap-4 border-t border-border pt-6 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="commercialRegister">{t("commercialRegisterLabel")}</Label>
+              <Input
+                id="commercialRegister"
+                value={cr}
+                onChange={(event) => setCr(event.target.value)}
+                placeholder={t("enterCommercialRegister")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="taxId">{t("taxId")}</Label>
+              <Input
+                id="taxId"
+                value={tax}
+                onChange={(event) => setTax(event.target.value)}
+                placeholder={t("enterTaxId")}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("contractStatusLabel")}</Label>
               <Select
-                value={documentType}
-                onValueChange={(value) => setDocumentType(value as ComplianceDocumentType)}
+                value={status}
+                onValueChange={(value) => setStatus(value as ContractStatus)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder={t("selectContractStatus")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TAX_ID">Tax ID</SelectItem>
-                  <SelectItem value="COMMERCIAL_REGISTER">Commercial Register</SelectItem>
-                  <SelectItem value="CONTRACT">Contract</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
+                  <SelectItem value="SIGNED">{t("contractSigned")}</SelectItem>
+                  <SelectItem value="PENDING">{t("contractPending")}</SelectItem>
+                  <SelectItem value="MISSING">{t("contractMissing")}</SelectItem>
                 </SelectContent>
               </Select>
-              <Input ref={fileInputRef} type="file" className="min-h-11 flex-1" />
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11"
-                disabled={isPending}
-                onClick={handleMockUpload}
-              >
-                Upload
-              </Button>
             </div>
           </div>
         )}
 
-        {uploadLocked && permissions.isPrimaryOwner && agencyStatus === "ASSIGNED" && (
-          <div className="rounded-xl border border-dashed border-border bg-muted p-8 text-center opacity-70">
-            <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="mt-3 text-sm text-muted-foreground">Upload zone locked</p>
-          </div>
-        )}
-
         {permissions.canEditComplianceFields && !permissions.canVerifyAgency && (
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
             <Button onClick={handleSave} disabled={isPending} className="min-h-11">
-              {isPending ? "Saving…" : "Save Compliance Data"}
+              {isPending ? t("saving") : t("saveCompliance")}
             </Button>
-            {message && <p className="text-sm text-success">{message}</p>}
           </div>
         )}
 
         {permissions.canVerifyAgency && (
-          <div className="space-y-4 border-t pt-4">
+          <div className="space-y-4 border-t border-border pt-4">
             <Button
               onClick={handleVerify}
               disabled={isPending || !cr.trim() || !tax.trim()}
               className="min-h-11 bg-success text-success-foreground hover:bg-success/90"
             >
-              {isPending ? "Verifying…" : "Verify & Complete"}
+              {isPending ? t("verifying") : t("verifyComplete")}
             </Button>
             {permissions.canReturnForRevision && (
               <div className="space-y-2">
-                <Label htmlFor="returnReason">Return reason (optional)</Label>
+                <Label htmlFor="returnReason">{t("returnReasonLabel")}</Label>
                 <Input
                   id="returnReason"
                   value={returnReason}
                   onChange={(event) => setReturnReason(event.target.value)}
-                  placeholder="e.g. Tax ID photo is blurry"
+                  placeholder={t("returnReasonPlaceholder")}
                 />
                 <Button
                   type="button"
@@ -303,12 +296,28 @@ export function ComplianceVault({
                   disabled={isPending}
                   onClick={handleReturn}
                 >
-                  Return to Sales
+                  {t("returnToSales")}
                 </Button>
               </div>
             )}
-            {message && <p className="text-sm text-destructive">{message}</p>}
           </div>
+        )}
+
+        {uploadLocked && permissions.isPrimaryOwner && agencyStatus === "ASSIGNED" && (
+          <p className="text-center text-sm text-muted-foreground">{t("uploadReadOnlyHint")}</p>
+        )}
+
+        {message && (
+          <p
+            className={cn(
+              "text-sm",
+              message.includes("fail") || message.includes("Failed") || message.includes("فشل")
+                ? "text-destructive"
+                : "text-muted-foreground",
+            )}
+          >
+            {message}
+          </p>
         )}
       </CardContent>
     </Card>

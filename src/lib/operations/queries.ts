@@ -225,12 +225,7 @@ export async function getOperationsDashboardData(): Promise<OperationsDashboardD
             : null,
       };
     })
-    .filter(
-      (row) =>
-        row.missingDocTypes.length > 0 ||
-        row.slaDaysOverdue !== null ||
-        row.contractStatus === "MISSING",
-    );
+    .filter((row) => row.missingDocTypes.length > 0);
 
   return {
     pipeline,
