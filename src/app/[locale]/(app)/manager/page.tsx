@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { Link } from "@/i18n/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getDaysOverdue } from "@/lib/claims/helpers";
 import {
   countPendingEoisForManager,
   getBrokerEoiStatsForManager,
@@ -17,7 +16,8 @@ import { BrokerEoiPerformanceTable } from "@/components/manager/broker-eoi-perfo
 import { ManagerDisputesTable } from "@/components/manager/manager-disputes-table";
 import { ManagerTeamAssignmentsTable } from "@/components/manager/manager-team-assignments-table";
 import { ManagerLeadAssignmentTable } from "@/components/manager/manager-lead-assignment-table";
-import { SlaBreachedAssignmentsTable } from "@/components/manager/sla-breached-assignments-table";
+import { LiveInquiriesQueue } from "@/components/manager/live-inquiries-queue";
+import { getNewInquiries } from "@/lib/inquiry/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -54,28 +54,6 @@ async function getDisputedAgencies() {
   }));
 }
 
-async function getSlaBreachedAgencies() {
-  const now = new Date();
-  const agencies = await prisma.agency.findMany({
-    where: {
-      status: "ASSIGNED",
-      claimExpiresAt: { lt: now },
-    },
-    include: {
-      primaryOwner: { select: { name: true } },
-    },
-    orderBy: { claimExpiresAt: "asc" },
-  });
-
-  return agencies.map((agency) => ({
-    id: agency.id,
-    name: agency.name,
-    location: agency.location,
-    primaryOwnerName: agency.primaryOwner?.name ?? null,
-    daysOverdue: getDaysOverdue(agency.claimExpiresAt!),
-  }));
-}
-
 async function getUnassignedLeads() {
   return prisma.agency.findMany({
     where: { status: "OPEN_RACE" },
@@ -93,7 +71,6 @@ async function getUnassignedLeads() {
 }
 
 async function getTeamAssignments(viewerId: string, viewerRole: string) {
-  const now = new Date();
   const teamScope =
     viewerRole === "DIRECTOR"
       ? {}
@@ -121,10 +98,6 @@ async function getTeamAssignments(viewerId: string, viewerRole: string) {
     location: agency.location,
     status: agency.status,
     primaryOwnerName: agency.primaryOwner?.name ?? null,
-    daysOverdue:
-      agency.status === "ASSIGNED" && agency.claimExpiresAt && agency.claimExpiresAt < now
-        ? getDaysOverdue(agency.claimExpiresAt)
-        : null,
   }));
 }
 
@@ -146,12 +119,12 @@ export default async function ManagerPage() {
   const [
     unassignedLeads,
     salesUsers,
-    slaBreached,
     disputedAgencies,
     pendingEoiCount,
     pendingEois,
     brokerStats,
     teamAssignments,
+    newInquiries,
   ] = await Promise.all([
     getUnassignedLeads(),
     canDirectAssign(viewerRole)
@@ -164,15 +137,24 @@ export default async function ManagerPage() {
           orderBy: { name: "asc" },
         })
       : Promise.resolve([]),
-    getSlaBreachedAgencies(),
     getDisputedAgencies(),
     countPendingEoisForManager(viewerId, viewerRole),
     getPendingEoisForManager(viewerId, viewerRole),
     getBrokerEoiStatsForManager(viewerId, viewerRole),
     getTeamAssignments(viewerId, viewerRole),
+    getNewInquiries(),
   ]);
 
+  const liveInquiries = newInquiries.map((inquiry) => ({
+    id: inquiry.id,
+    brokerPhone: inquiry.brokerPhone,
+    rawMessage: inquiry.rawMessage,
+    createdAt: inquiry.createdAt,
+    agencyName: inquiry.agency?.name ?? null,
+  }));
+
   const t = await getTranslations("manager");
+  const tInquiry = await getTranslations("inquiry");
   const tTables = await getTranslations("tables");
   const tCommon = await getTranslations("common");
 
@@ -189,22 +171,23 @@ export default async function ManagerPage() {
         <Card className="metric-info">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-current/70">
+              {tInquiry("liveInquiriesMetric")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-semibold">{liveInquiries.length}</p>
+            <p className="mt-1 text-xs opacity-80">{tInquiry("liveInquiriesHint")}</p>
+          </CardContent>
+        </Card>
+        <Card className="metric-info">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-current/70">
               {t("leadsAwaitingAssignment")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{unassignedLeads.length}</p>
             <p className="mt-1 text-xs opacity-80">{t("leadsAwaitingHint")}</p>
-          </CardContent>
-        </Card>
-        <Card className="metric-danger">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-current/70">
-              {t("slaBreached")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{slaBreached.length}</p>
           </CardContent>
         </Card>
         <Card className="metric-violet">
@@ -220,18 +203,11 @@ export default async function ManagerPage() {
         </Card>
       </div>
 
+      <LiveInquiriesQueue inquiries={liveInquiries} salesUsers={salesUsers} />
+
       <ManagerLeadAssignmentTable leads={unassignedLeads} salesUsers={salesUsers} />
 
       <ManagerTeamAssignmentsTable agencies={teamAssignments} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("slaBreachedSection")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SlaBreachedAssignmentsTable agencies={slaBreached} />
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>

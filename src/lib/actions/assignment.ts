@@ -6,8 +6,6 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/audit/create-audit-log";
 import { canDirectAssign, canManageAssignmentRequests } from "@/lib/agency/permissions";
-import { buildClaimExpiry } from "@/lib/claims/helpers";
-
 function revalidateAssignmentPaths(agencyId: string) {
   revalidatePath("/open-race");
   revalidatePath("/manager");
@@ -59,8 +57,6 @@ export async function directAssignAgency(agencyId: string, salesUserId: string) 
       data: {
         status: "ASSIGNED",
         primaryOwnerId: salesUserId,
-        claimExpiresAt: buildClaimExpiry(),
-        claimedAt: new Date(),
         isDisputed: false,
       },
     });

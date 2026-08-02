@@ -7,6 +7,13 @@ datasource db {
   provider = "sqlite"
 }
 
+enum InquiryStatus {
+  NEW
+  ASSIGNED
+  RESPONDED
+  CLOSED
+}
+
 enum Role {
   SALES
   MANAGER
@@ -75,6 +82,8 @@ model User {
   assignmentRequests   AssignmentRequest[]
   complianceDocuments  ComplianceDocument[]
   eois                 EOI[]
+  assignedInquiries    Inquiry[]            @relation("AssignedInquiries")
+  createdTemplates     InventoryTemplate[]  @relation("CreatedTemplates")
 
   @@index([managerId])
   @@index([role])
@@ -112,6 +121,7 @@ model Agency {
   complianceDocuments ComplianceDocument[]
   eois                EOI[]
   brokerContacts      BrokerContact[]
+  inquiries           Inquiry[]
 
   @@index([status])
   @@index([primaryOwnerId])
@@ -213,4 +223,40 @@ model AuditLog {
   @@index([agencyId])
   @@index([userId])
   @@index([createdAt])
+}
+
+model Inquiry {
+  id              String        @id @default(cuid())
+  agencyId        String?
+  brokerPhone     String
+  rawMessage      String
+  status          InquiryStatus @default(NEW)
+  assignedSalesId String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  agency        Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  assignedSales User?   @relation("AssignedInquiries", fields: [assignedSalesId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([assignedSalesId])
+  @@index([brokerPhone])
+  @@index([createdAt])
+}
+
+model InventoryTemplate {
+  id          String   @id @default(cuid())
+  title       String
+  project     String
+  messageBody String
+  mediaUrl    String?
+  isActive    Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+
+  createdBy User @relation("CreatedTemplates", fields: [createdById], references: [id])
+
+  @@index([isActive])
+  @@index([project])
+  @@index([createdById])
 }

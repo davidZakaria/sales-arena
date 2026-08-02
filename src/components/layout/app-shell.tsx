@@ -3,8 +3,15 @@ import { AppShellClient } from "@/components/layout/app-shell-client";
 import type { SidebarBadges } from "@/components/layout/sidebar";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  countAssignedInquiriesForSales,
+  countNewInquiries,
+} from "@/lib/inquiry/queries";
 
-async function getSidebarBadges(role: string | undefined): Promise<SidebarBadges> {
+async function getSidebarBadges(
+  role: string | undefined,
+  userId: string | undefined,
+): Promise<SidebarBadges> {
   if (role === "OPERATIONS") {
     const [auditQueue, draftCount] = await Promise.all([
       prisma.agency.count({ where: { status: "PENDING_AUDIT" } }),
@@ -21,10 +28,16 @@ async function getSidebarBadges(role: string | undefined): Promise<SidebarBadges
   }
 
   if (role === "MANAGER" || role === "DIRECTOR") {
-    const unassignedLeadCount = await prisma.agency.count({
-      where: { status: "OPEN_RACE" },
-    });
-    return { unassignedLeadCount };
+    const [unassignedLeadCount, newInquiryCount] = await Promise.all([
+      prisma.agency.count({ where: { status: "OPEN_RACE" } }),
+      countNewInquiries(),
+    ]);
+    return { unassignedLeadCount, newInquiryCount };
+  }
+
+  if (role === "SALES" && userId) {
+    const assignedInquiryCount = await countAssignedInquiriesForSales(userId);
+    return { assignedInquiryCount };
   }
 
   return {};
@@ -32,7 +45,7 @@ async function getSidebarBadges(role: string | undefined): Promise<SidebarBadges
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
-  const badges = await getSidebarBadges(session?.user?.role);
+  const badges = await getSidebarBadges(session?.user?.role, session?.user?.id);
 
   return <AppShellClient badges={badges}>{children}</AppShellClient>;
 }

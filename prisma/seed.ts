@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../src/lib/prisma";
 import { createAuditLog } from "../src/lib/audit/create-audit-log";
-import { CLAIM_SLA_DAYS } from "../src/lib/claims/constants";
 
 const DEMO_PASSWORD = "brm123456";
 
@@ -11,13 +10,9 @@ function daysAgo(days: number) {
   return date;
 }
 
-function daysFromNow(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
-}
-
 async function main() {
+  await prisma.inquiry.deleteMany();
+  await prisma.inventoryTemplate.deleteMany();
   await prisma.eOI.deleteMany();
   await prisma.brokerContact.deleteMany();
   await prisma.complianceDocument.deleteMany();
@@ -122,8 +117,6 @@ async function main() {
         source: "OPERATIONS",
         contractStatus: "MISSING",
         contractDuration: "6 months",
-        claimedAt: daysAgo(5),
-        claimExpiresAt: daysFromNow(CLAIM_SLA_DAYS - 5),
       },
       {
         name: "Heliopolis Partners",
@@ -138,8 +131,6 @@ async function main() {
         inboundNotes: "Registered via /join portal",
         contractStatus: "MISSING",
         contractDuration: "1 year",
-        claimedAt: daysAgo(3),
-        claimExpiresAt: daysFromNow(CLAIM_SLA_DAYS - 3),
       },
       // —— Ops audit queue ——
       {
@@ -155,8 +146,6 @@ async function main() {
         contractStatus: "PENDING",
         contractDuration: "6 months",
         submittedForAuditAt: daysAgo(1),
-        claimedAt: daysAgo(20),
-        claimExpiresAt: daysFromNow(CLAIM_SLA_DAYS - 20),
       },
       {
         name: "Red Sea Properties",
@@ -171,8 +160,6 @@ async function main() {
         inboundNotes: "Inbound WhatsApp lead — converted to assigned",
         contractStatus: "PENDING",
         submittedForAuditAt: daysAgo(2),
-        claimedAt: daysAgo(18),
-        claimExpiresAt: daysFromNow(CLAIM_SLA_DAYS - 18),
       },
       // —— Verified portfolio ——
       {
@@ -189,10 +176,8 @@ async function main() {
         contractDuration: "1 year",
         commercialRegister: "CR-445566",
         taxId: "300-987-654",
-        claimedAt: daysAgo(45),
-        claimExpiresAt: daysFromNow(CLAIM_SLA_DAYS),
       },
-      // —— Manager: SLA breach + dispute ——
+      // —— Manager: dispute demo ——
       {
         name: "Oasis Estates",
         type: "B",
@@ -205,8 +190,6 @@ async function main() {
         source: "OPERATIONS",
         contractStatus: "MISSING",
         isDisputed: true,
-        claimedAt: daysAgo(30),
-        claimExpiresAt: daysAgo(5),
       },
       // —— Manager assignment queue ——
       {
@@ -518,6 +501,55 @@ async function main() {
     ],
   });
 
+  await prisma.inventoryTemplate.createMany({
+    data: [
+      {
+        title: "Jura El Galala | 2-Bed RTM",
+        project: "Jura",
+        messageBody:
+          "Jura El Galala — 2-bedroom ready-to-move unit available.\n\nPrice: 4,850,000 EGP\nPayment: 10% down, 7-year installments\nDelivery: Immediate\n\nIncludes clubhouse access and sea view options. Limited units — reply for floor plans.",
+        mediaUrl: "https://example.com/inventory/jura-2bed-rtm.pdf",
+        createdById: manager.id,
+      },
+      {
+        title: "Green Avenue | 3-Bed Villa",
+        project: "Green Avenue",
+        messageBody:
+          "Green Avenue — standalone 3-bedroom villa.\n\nPrice: 12,500,000 EGP\nPayment: 15% down, 8-year installments\nDelivery: Q4 2027\n\nGarden, private parking, and New Capital location. Reply for site visit slots.",
+        mediaUrl: "https://example.com/inventory/green-avenue-villa.pdf",
+        createdById: director.id,
+      },
+    ],
+  });
+
+  await prisma.inquiry.createMany({
+    data: [
+      {
+        brokerPhone: "201077788899",
+        rawMessage: "Any 2-bed ready in Jura El Galala? Client budget 5M.",
+        status: "NEW",
+      },
+      {
+        brokerPhone: "201066677788",
+        rawMessage: "Need Green Avenue villa pricing and payment plan ASAP.",
+        status: "NEW",
+      },
+      {
+        brokerPhone: "201012345678",
+        rawMessage: "Client asking about NJ Towers 3-bed — what's available?",
+        status: "ASSIGNED",
+        assignedSalesId: tantawy.id,
+        agencyId: aqarMisr.id,
+      },
+      {
+        brokerPhone: "201044455566",
+        rawMessage: "Urgent: chalet North Coast under 2M — any inventory?",
+        status: "ASSIGNED",
+        assignedSalesId: karim.id,
+      },
+    ],
+  });
+
   await createAuditLog(aqarMisr.id, tantawy.id, `${tantawy.name} added ${karim.name} as Co-Pilot`);
   await createAuditLog(aqarMisr.id, tantawy.id, `${tantawy.name} uploaded compliance documents (partial)`);
   await createAuditLog(aqarMisr.id, tantawy.id, `${tantawy.name} added broker contact Mona El-Sayed`);
@@ -550,7 +582,7 @@ async function main() {
   console.log("ROLES & LANDING PAGES");
   console.log("──────────────────────────────────────────────────────────");
   console.log(`  Director    ${director.email}     → /dashboard + /manager`);
-  console.log(`  Manager     ${manager.email}      → /manager (lead queue, SLA, EOIs)`);
+  console.log(`  Manager     ${manager.email}      → /manager (lead queue, inquiries, EOIs)`);
   console.log(`  Operations  ${operations.email}  → /operations (drafts, audit)`);
   console.log(`  Finance     ${finance.email} → /finance (EOI clearance)`);
   console.log(`  Sales       ${tantawy.email}  → /dashboard (Aqar Misr, Nile, Pyramids)`);
@@ -562,7 +594,7 @@ async function main() {
   console.log("  /operations     3 draft leads · 2 audit queue · compliance watch");
   console.log("  /finance        4 pending · 2 verified · 1 rejected · 2 converted EOIs");
   console.log("  /dashboard      Action required · pending audit · EOI metrics");
-  console.log("  /manager        3 leads in queue · SLA breach · dispute · broker EOI stats");
+  console.log("  /manager        3 leads in queue · live inquiries · dispute · broker EOI stats");
   console.log("  /open-race      Redirects to /manager (managers) or /portfolio (sales)");
   console.log("  /agency/*       Broker contacts tab · compliance vault · EOIs");
   console.log("\nBROKER CONTACTS & SELF-REGISTRATION");

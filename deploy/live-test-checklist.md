@@ -40,33 +40,15 @@ npm run db:list-users    # confirm ops user exists
 
 ---
 
-## 3. Manager — Requests, SLA, disputes (`reem@newjerseyegypt.com`)
+## 3. Manager — Inquiries, lead queue, disputes (`reem@newjerseyegypt.com`)
 
 | Step | Action | Expected |
 |------|--------|----------|
-| 1 | `/manager` → **Pending Assignment Requests** | Karim → Delta Properties |
-| 2 | **Approve & Assign** | Agency ASSIGNED; Karim primary owner; `claimExpiresAt` set (+14 days) |
-| 3 | **SLA Breached Assignments** | Empty unless you backdate `claimExpiresAt` (see below) |
-| 4 | **Disputed Assignments** | Existing disputes if seeded |
-| 5 | `/open-race` | **Direct Assign** dropdown on each card |
-
-**Simulate SLA breach (optional, on VPS):**
-
-```bash
-cd /var/www/sales-arena
-npx tsx -e "
-const { prisma } = require('./src/lib/prisma');
-(async () => {
-  const a = await prisma.agency.findFirst({ where: { status: 'ASSIGNED' } });
-  if (!a) { console.log('No ASSIGNED agency'); return; }
-  const past = new Date(); past.setDate(past.getDate() - 3);
-  await prisma.agency.update({ where: { id: a.id }, data: { claimExpiresAt: past } });
-  console.log('Backdated claimExpiresAt for', a.name);
-  await prisma.\$disconnect();
-})();
-"
-# Refresh /manager → SLA Breached Assignments should show the agency
-```
+| 1 | `/manager` → **Live inquiries queue** | 2 NEW inquiries from seed; assign to rep |
+| 2 | **Lead assignment queue** | 3 OPEN_RACE leads; assign via dropdown |
+| 3 | **Team assignments** | Active team agencies with rep and status |
+| 4 | **Disputed Assignments** | Oasis Estates dispute if seeded |
+| 5 | `/inventory` | Jura + Green Avenue templates; create new template |
 
 ---
 

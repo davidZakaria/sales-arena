@@ -1,14 +1,40 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import {
   createInboundDraftLead,
   getInboundSystemUser,
 } from "@/lib/agency/inbound-lead";
+import { normalizePhone } from "@/lib/agency/normalize-contact";
 
 function normalizeWhatsAppLink(phone: string, whatsappLink?: string): string | null {
   if (whatsappLink?.trim()) return whatsappLink.trim();
-  const digits = phone.replace(/\D/g, "");
+  const digits = normalizePhone(phone);
   if (!digits) return null;
   return `https://wa.me/${digits}`;
+}
+
+async function resolveAgencyIdByPhone(phone: string, agencyId?: string): Promise<string | null> {
+  if (agencyId?.trim()) {
+    const agency = await prisma.agency.findUnique({ where: { id: agencyId.trim() } });
+    return agency?.id ?? null;
+  }
+
+  const digits = normalizePhone(phone);
+  if (!digits) return null;
+
+  const agencies = await prisma.agency.findMany({
+    where: { repPhone1: { not: null } },
+    select: { id: true, repPhone1: true, whatsappLink: true },
+  });
+
+  for (const agency of agencies) {
+    const repDigits = normalizePhone(agency.repPhone1);
+    if (repDigits && repDigits === digits) return agency.id;
+    const waDigits = agency.whatsappLink?.match(/wa\.me\/(\d+)/i)?.[1];
+    if (waDigits && waDigits === digits) return agency.id;
+  }
+
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -25,16 +51,48 @@ export async function POST(request: Request) {
   }
 
   let body: {
+    type?: string;
     brokerName?: string;
     phone?: string;
+    brokerPhone?: string;
     whatsappLink?: string;
     message?: string;
+    agencyId?: string;
   };
 
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  if (body.type === "INQUIRY") {
+    const brokerPhone = normalizePhone(body.brokerPhone?.trim() ?? body.phone?.trim());
+    const message = body.message?.trim();
+
+    if (!brokerPhone || !message) {
+      return NextResponse.json(
+        { error: "brokerPhone and message are required for INQUIRY" },
+        { status: 400 },
+      );
+    }
+
+    try {
+      const linkedAgencyId = await resolveAgencyIdByPhone(brokerPhone, body.agencyId);
+      const inquiry = await prisma.inquiry.create({
+        data: {
+          brokerPhone,
+          rawMessage: message,
+          status: "NEW",
+          agencyId: linkedAgencyId,
+        },
+      });
+
+      return NextResponse.json({ ok: true, inquiryId: inquiry.id });
+    } catch (err) {
+      const errMessage = err instanceof Error ? err.message : "Failed to create inquiry";
+      return NextResponse.json({ error: errMessage }, { status: 500 });
+    }
   }
 
   const brokerName = body.brokerName?.trim();

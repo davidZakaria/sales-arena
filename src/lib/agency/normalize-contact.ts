@@ -30,6 +30,19 @@ export const REQUIRED_DOCUMENT_TYPES = [
   "CONTRACT",
 ] as const;
 
+export function buildWhatsAppUrl(
+  phone: string | null | undefined,
+  text?: string | null,
+): string | null {
+  const digits = normalizePhone(phone);
+  if (!digits) return null;
+  const base = `https://wa.me/${digits}`;
+  if (text?.trim()) {
+    return `${base}?text=${encodeURIComponent(text.trim())}`;
+  }
+  return base;
+}
+
 export function buildBrokerNotifyUrl(
   whatsappLink: string | null | undefined,
   repPhone1: string | null | undefined,

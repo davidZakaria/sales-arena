@@ -235,6 +235,10 @@ export function canPublishToOpenRace(role: string | undefined): boolean {
   return role === "OPERATIONS";
 }
 
+export function canManageInventoryTemplates(role: string | undefined): boolean {
+  return role === "MANAGER" || role === "DIRECTOR";
+}
+
 export function canDirectAssign(role: string | undefined): boolean {
   return role === "MANAGER" || role === "DIRECTOR";
 }

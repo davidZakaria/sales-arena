@@ -8,6 +8,8 @@ export type SidebarBadges = {
   auditQueue?: number;
   draftCount?: number;
   unassignedLeadCount?: number;
+  newInquiryCount?: number;
+  assignedInquiryCount?: number;
   pendingEois?: number;
 };
 

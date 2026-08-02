@@ -20,7 +20,6 @@ export type ManagerTeamAssignmentRow = {
   location: string | null;
   status: AgencyStatus;
   primaryOwnerName: string | null;
-  daysOverdue: number | null;
 };
 
 export function ManagerTeamAssignmentsTable({
@@ -55,7 +54,6 @@ export function ManagerTeamAssignmentsTable({
               <TableHead>{tTables("agency")}</TableHead>
               <TableHead className="hidden sm:table-cell">{tTables("assignedRep")}</TableHead>
               <TableHead className="hidden md:table-cell">{tCommon("status")}</TableHead>
-              <TableHead className="hidden lg:table-cell">{tTables("sla")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -80,17 +78,6 @@ export function ManagerTeamAssignmentsTable({
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <AgencyStatusBadge status={agency.status} />
-                </TableCell>
-                <TableCell className="hidden lg:table-cell">
-                  {agency.daysOverdue !== null && agency.daysOverdue > 0 ? (
-                    <span className="font-medium text-destructive">
-                      {t("slaDaysOverdue", { days: agency.daysOverdue })}
-                    </span>
-                  ) : agency.status === "ASSIGNED" ? (
-                    <span className="text-muted-foreground">{t("slaOnTrack")}</span>
-                  ) : (
-                    "—"
-                  )}
                 </TableCell>
               </TableRow>
             ))}

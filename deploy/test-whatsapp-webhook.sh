@@ -23,3 +23,17 @@ curl -sS -X POST "${BASE_URL}/api/webhooks/whatsapp" \
 
 echo ""
 echo "Check /operations Draft Leads for source=WhatsApp, or re-run with duplicate phone for 409."
+
+echo ""
+echo "--- INQUIRY payload (Live Inquiries Queue on /manager) ---"
+curl -sS -X POST "${BASE_URL}/api/webhooks/whatsapp" \
+  -H "Authorization: Bearer ${SECRET}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "INQUIRY",
+    "brokerPhone": "+201088877766",
+    "message": "Any 2-bed in Jura under 5M? Client ready to visit."
+  }' | jq .
+
+echo ""
+echo "Check /manager Live Inquiries Queue for the new row."

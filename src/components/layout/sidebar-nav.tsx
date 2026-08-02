@@ -7,15 +7,31 @@ import {
   Briefcase,
   ClipboardCheck,
   Coins,
+  Inbox,
   LayoutDashboard,
+  Package,
   Scale,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SidebarBadges } from "@/components/layout/sidebar";
 
 type NavItem = {
-  href: "/dashboard" | "/portfolio" | "/manager" | "/operations" | "/finance";
-  labelKey: "dashboard" | "portfolio" | "managerDashboard" | "operationsHub" | "financeHub";
+  href:
+    | "/dashboard"
+    | "/portfolio"
+    | "/manager"
+    | "/operations"
+    | "/finance"
+    | "/inventory"
+    | "/inquiries";
+  labelKey:
+    | "dashboard"
+    | "portfolio"
+    | "managerDashboard"
+    | "operationsHub"
+    | "financeHub"
+    | "inventoryLibrary"
+    | "inquiriesHub";
   icon: React.ComponentType<{ className?: string }>;
   badge?: number;
 };
@@ -58,13 +74,36 @@ export function SidebarNav({ badges = {}, onNavigate, className }: SidebarNavPro
       { href: "/portfolio", labelKey: "portfolio", icon: Briefcase },
     ];
 
+    if (role === "SALES") {
+      navItems.push(
+        {
+          href: "/inquiries",
+          labelKey: "inquiriesHub",
+          icon: Inbox,
+          badge: badges.assignedInquiryCount,
+        },
+        {
+          href: "/inventory",
+          labelKey: "inventoryLibrary",
+          icon: Package,
+        },
+      );
+    }
+
     if (role === "MANAGER" || role === "DIRECTOR") {
-      navItems.push({
-        href: "/manager",
-        labelKey: "managerDashboard",
-        icon: Scale,
-        badge: badges.unassignedLeadCount,
-      });
+      navItems.push(
+        {
+          href: "/manager",
+          labelKey: "managerDashboard",
+          icon: Scale,
+          badge: (badges.unassignedLeadCount ?? 0) + (badges.newInquiryCount ?? 0) || undefined,
+        },
+        {
+          href: "/inventory",
+          labelKey: "inventoryLibrary",
+          icon: Package,
+        },
+      );
     }
   }
 

@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { getDaysOverdue, getDaysRemaining } from "@/lib/claims/helpers";
 import { REQUIRED_DOCUMENT_TYPES } from "@/lib/agency/normalize-contact";
 import type { AgencyStatus, ComplianceDocumentType, EOIStatus, InboundSource } from "@/generated/prisma/client";
 
@@ -47,9 +46,6 @@ export type OperationsComplianceWatchRow = {
   contractStatus: string;
   documentTypes: ComplianceDocumentType[];
   missingDocTypes: ComplianceDocumentType[];
-  claimExpiresAt: Date | null;
-  slaDaysRemaining: number | null;
-  slaDaysOverdue: number | null;
 };
 
 export type OperationsActivityRow = {
@@ -147,7 +143,7 @@ export async function getOperationsDashboardData(): Promise<OperationsDashboardD
     }),
     prisma.agency.findMany({
       where: { status: "ASSIGNED" },
-      orderBy: { claimExpiresAt: "asc" },
+      orderBy: { updatedAt: "desc" },
       include: {
         primaryOwner: { select: { name: true } },
         complianceDocuments: { select: { documentType: true } },
@@ -204,8 +200,6 @@ export async function getOperationsDashboardData(): Promise<OperationsDashboardD
         new Set(agency.complianceDocuments.map((doc) => doc.documentType)),
       );
       const missing = missingDocTypes(documentTypes);
-      const claimExpiresAt = agency.claimExpiresAt;
-
       return {
         id: agency.id,
         name: agency.name,
@@ -214,15 +208,6 @@ export async function getOperationsDashboardData(): Promise<OperationsDashboardD
         contractStatus: agency.contractStatus,
         documentTypes,
         missingDocTypes: missing,
-        claimExpiresAt,
-        slaDaysRemaining:
-          claimExpiresAt && claimExpiresAt > now
-            ? getDaysRemaining(claimExpiresAt, now)
-            : null,
-        slaDaysOverdue:
-          claimExpiresAt && claimExpiresAt <= now
-            ? getDaysOverdue(claimExpiresAt, now)
-            : null,
       };
     })
     .filter((row) => row.missingDocTypes.length > 0);
