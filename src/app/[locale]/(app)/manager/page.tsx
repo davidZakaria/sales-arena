@@ -20,7 +20,6 @@ import { LiveInquiriesQueue } from "@/components/manager/live-inquiries-queue";
 import { getNewInquiries } from "@/lib/inquiry/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageTitleRow } from "@/components/layout/page-title-row";
-import { managerQuickGuide } from "@/lib/navigation/role-quick-guides";
 import {
   Table,
   TableBody,
@@ -162,7 +161,7 @@ export default async function ManagerPage() {
 
   return (
     <div className="space-y-6">
-      <PageTitleRow title={t("title")} subtitle={t("subtitle")} guide={managerQuickGuide} />
+      <PageTitleRow title={t("title")} subtitle={t("subtitle")} guideId="manager" />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="metric-info">

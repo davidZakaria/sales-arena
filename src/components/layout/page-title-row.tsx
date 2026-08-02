@@ -1,17 +1,17 @@
 import type { ReactNode } from "react";
-import { RoleQuickGuide, type RoleQuickGuideProps } from "@/components/layout/role-quick-guide";
+import { RoleQuickGuide, type QuickGuideId } from "@/components/layout/role-quick-guide";
 import { cn } from "@/lib/utils";
 
 export function PageTitleRow({
   title,
   subtitle,
-  guide,
+  guideId,
   actions,
   className,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
-  guide?: RoleQuickGuideProps;
+  guideId?: QuickGuideId;
   actions?: ReactNode;
   className?: string;
 }) {
@@ -22,7 +22,7 @@ export function PageTitleRow({
           <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             {title}
           </h1>
-          {guide && <RoleQuickGuide {...guide} />}
+          {guideId && <RoleQuickGuide guideId={guideId} />}
         </div>
         {subtitle && (
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{subtitle}</p>

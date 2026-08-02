@@ -7,15 +7,15 @@ import { buttonVariants } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-export type RoleQuickGuideProps = {
-  roleName: string;
-  primaryGoal: string;
-  tasks: string[];
-};
+export type QuickGuideId = "operations" | "manager" | "sales" | "finance";
 
-export function RoleQuickGuide({ roleName, primaryGoal, tasks }: RoleQuickGuideProps) {
+export function RoleQuickGuide({ guideId }: { guideId: QuickGuideId }) {
   const t = useTranslations("quickGuide");
   const [open, setOpen] = useState(false);
+
+  const roleName = t(`${guideId}.roleName`);
+  const primaryGoal = t(`${guideId}.primaryGoal`);
+  const tasks = t.raw(`${guideId}.tasks`) as string[];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

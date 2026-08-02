@@ -30,10 +30,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageTitleRow } from "@/components/layout/page-title-row";
-import {
-  managerQuickGuide,
-  salesQuickGuide,
-} from "@/lib/navigation/role-quick-guides";
 
 const ACTION_STATUS_KEYS: Record<string, string> = {
   ASSIGNED: "uploadCompliance",
@@ -162,17 +158,15 @@ export default async function DashboardPage({
     },
   ];
 
-  const dashboardGuide =
-    viewerRole === "MANAGER" || viewerRole === "DIRECTOR"
-      ? managerQuickGuide
-      : salesQuickGuide;
+  const dashboardGuideId =
+    viewerRole === "MANAGER" || viewerRole === "DIRECTOR" ? "manager" : "sales";
 
   return (
     <div className="space-y-8">
       <PageTitleRow
         title={t("title")}
         subtitle={t("subtitle", { name: subjectName })}
-        guide={dashboardGuide}
+        guideId={dashboardGuideId}
         actions={
           viewingOtherUser ? (
             <div className="flex flex-wrap items-center gap-2">

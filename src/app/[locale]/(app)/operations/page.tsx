@@ -16,7 +16,6 @@ import {
 import { OperationsOpenRaceTable } from "@/components/operations/operations-open-race-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageTitleRow } from "@/components/layout/page-title-row";
-import { operationsQuickGuide } from "@/lib/navigation/role-quick-guides";
 
 export default async function OperationsPage() {
   const session = await getServerSession(authOptions);
@@ -31,7 +30,7 @@ export default async function OperationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageTitleRow title={t("title")} subtitle={t("subtitle")} guide={operationsQuickGuide} />
+      <PageTitleRow title={t("title")} subtitle={t("subtitle")} guideId="operations" />
 
       <OperationsPipelineCards pipeline={data.pipeline} />
 

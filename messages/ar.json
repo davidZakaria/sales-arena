@@ -135,7 +135,44 @@
   },
   "quickGuide": {
     "openLabel": "دليل الدور السريع",
-    "tasksHeading": "المهام الأساسية"
+    "tasksHeading": "Core tasks",
+    "operations": {
+      "roleName": "Operations: Data Gatekeeper",
+      "primaryGoal": "ضمان سلامة البيانات من خلال التحقق من مستندات Compliance ومنع تسجيل الوسطاء المكرر.",
+      "tasks": [
+        "Intake & De-duplication: مراجعة leads بحالة DRAFT ونشر السجلات النظيفة إلى assignment queue.",
+        "Document Audit: مراجعة Tax ID و Commercial Register (CR) المرفوعة، وإدخال الأرقام المتحقق منها يدوياً في النظام.",
+        "Quality Control: إرجاع المستندات غير الصالحة أو غير الواضحة إلى Sales للتصحيح."
+      ]
+    },
+    "manager": {
+      "roleName": "Manager: Territory Commander",
+      "primaryGoal": "تسريع خط الأنابيب، توزيع Live Inquiries على الفريق، وحل نزاعات المناطق.",
+      "tasks": [
+        "Assignment: تعيين broker leads بحالة OPEN_RACE و property inquiries المباشرة على أعضاء الفريق حسب عبء العمل.",
+        "Pipeline oversight: متابعة team assignments والوكالات في Pending Audit و EOIs بانتظار Finance.",
+        "Arbitration: مراجعة Audit Logs لحل Disputed Assignments بموضوعية (Add Co-Pilot أو Transfer Ownership)."
+      ]
+    },
+    "sales": {
+      "roleName": "Sales: Deal Closer",
+      "primaryGoal": "إدارة علاقات الوسطاء، استكمال مستندات Compliance القانونية، وتقديم EOIs.",
+      "tasks": [
+        "Compliance: رفع Contract و Tax ID و Commercial Register (CR) إلى Compliance Vault.",
+        "Inquiry response: الرد على property inquiries المعيّنة في My Work باستخدام Inventory templates.",
+        "Account management: متابعة Needs Immediate Action للوكالات التي تنقصها مستندات قانونية.",
+        "Revenue tracking: تقديم Expressions of Interest (EOIs) مع إيصالات الدفع إلى Finance للاعتماد."
+      ]
+    },
+    "finance": {
+      "roleName": "Finance: Revenue Guardian",
+      "primaryGoal": "التأكد من أن كل EOI مقدّم من Sales مدعوم بأموال محصّلة في الحسابات البنكية الرسمية.",
+      "tasks": [
+        "Clearance: مراجعة EOI queue للمدفوعات المعلّقة.",
+        "Verification: مطابقة الإيصات المرفوعة ورموز Swift مع كشوف الحساب البنكية الرسمية.",
+        "Resolution: وضع علامة Verified على الأموال، أو Reject للمدفوعات المرتدة/الناقصة مع ملاحظات واضحة."
+      ]
+    }
   },
   "dashboard": {
     "title": "لوحة التحكم",

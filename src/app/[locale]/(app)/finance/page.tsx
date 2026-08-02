@@ -7,7 +7,6 @@ import { EoiClearanceTable } from "@/components/finance/eoi-clearance-table";
 import { FinanceSummaryCards } from "@/components/finance/finance-summary-cards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageTitleRow } from "@/components/layout/page-title-row";
-import { financeQuickGuide } from "@/lib/navigation/role-quick-guides";
 
 export default async function FinancePage() {
   const session = await getServerSession(authOptions);
@@ -54,7 +53,7 @@ export default async function FinancePage() {
 
   return (
     <div className="space-y-6">
-      <PageTitleRow title={t("title")} subtitle={t("subtitle")} guide={financeQuickGuide} />
+      <PageTitleRow title={t("title")} subtitle={t("subtitle")} guideId="finance" />
 
       <FinanceSummaryCards
         pendingCount={countByStatus.PENDING_FINANCE ?? 0}
