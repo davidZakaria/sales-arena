@@ -32,12 +32,12 @@ function PopoverContent({
         side={side}
         sideOffset={sideOffset}
         alignOffset={alignOffset}
-        className="isolate z-50 outline-none"
+        className="isolate z-[200] outline-none"
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(
-            "w-[min(calc(100vw-2rem),22rem)] rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-md outline-none",
+            "z-[200] w-[min(calc(100vw-2rem),22rem)] rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-md outline-none",
             "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
             "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className,

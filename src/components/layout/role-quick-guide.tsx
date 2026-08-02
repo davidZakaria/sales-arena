@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 export type RoleQuickGuideProps = {
   roleName: string;
@@ -13,19 +15,18 @@ export type RoleQuickGuideProps = {
 
 export function RoleQuickGuide({ roleName, primaryGoal, tasks }: RoleQuickGuideProps) {
   const t = useTranslations("quickGuide");
+  const [open, setOpen] = useState(false);
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        render={
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
-            aria-label={t("openLabel")}
-          />
-        }
+        type="button"
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "icon-sm" }),
+          "size-8 shrink-0 text-muted-foreground hover:text-foreground",
+        )}
+        aria-label={t("openLabel")}
+        aria-expanded={open}
       >
         <HelpCircle className="h-4 w-4" />
       </PopoverTrigger>
