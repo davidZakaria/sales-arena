@@ -32,6 +32,7 @@ type AgencyDetailTabsProps = {
   commercialRegister: string | null;
   taxId: string | null;
   contractStatus: ContractStatus;
+  contractDuration: string | null;
   documents: ComplianceDocumentRow[];
   activityLogs: ActivityLogEntry[];
   eois: EoiRow[];
@@ -50,6 +51,7 @@ export function AgencyDetailTabs({
   commercialRegister,
   taxId,
   contractStatus,
+  contractDuration,
   documents,
   activityLogs,
   eois,
@@ -90,6 +92,7 @@ export function AgencyDetailTabs({
           commercialRegister={commercialRegister}
           taxId={taxId}
           contractStatus={contractStatus}
+          contractDuration={contractDuration}
           documents={documents}
           permissions={permissions}
         />

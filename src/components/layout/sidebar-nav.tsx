@@ -9,14 +9,13 @@ import {
   Coins,
   LayoutDashboard,
   Scale,
-  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SidebarBadges } from "@/components/layout/sidebar";
 
 type NavItem = {
-  href: "/dashboard" | "/portfolio" | "/open-race" | "/manager" | "/operations" | "/finance";
-  labelKey: "dashboard" | "portfolio" | "openRaceMarket" | "managerDashboard" | "operationsHub" | "financeHub";
+  href: "/dashboard" | "/portfolio" | "/manager" | "/operations" | "/finance";
+  labelKey: "dashboard" | "portfolio" | "managerDashboard" | "operationsHub" | "financeHub";
   icon: React.ComponentType<{ className?: string }>;
   badge?: number;
 };
@@ -57,7 +56,6 @@ export function SidebarNav({ badges = {}, onNavigate, className }: SidebarNavPro
     navItems = [
       { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
       { href: "/portfolio", labelKey: "portfolio", icon: Briefcase },
-      { href: "/open-race", labelKey: "openRaceMarket", icon: Trophy },
     ];
 
     if (role === "MANAGER" || role === "DIRECTOR") {
@@ -65,7 +63,7 @@ export function SidebarNav({ badges = {}, onNavigate, className }: SidebarNavPro
         href: "/manager",
         labelKey: "managerDashboard",
         icon: Scale,
-        badge: badges.openRaceCount,
+        badge: badges.unassignedLeadCount,
       });
     }
   }
@@ -83,14 +81,14 @@ export function SidebarNav({ badges = {}, onNavigate, className }: SidebarNavPro
             className={cn(
               "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               active
-                ? "bg-sidebar-accent text-sidebar-foreground"
-                : "text-sidebar-muted hover:bg-sidebar-accent/80 hover:text-sidebar-foreground",
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-sidebar-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
             )}
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className="h-4 w-4 shrink-0 opacity-80" />
             <span className="flex-1">{t(labelKey)}</span>
             {badge !== undefined && badge > 0 && (
-              <span className="rounded-full bg-warning px-2 py-0.5 text-xs font-semibold text-warning-foreground">
+              <span className="rounded-full bg-sidebar-primary px-2 py-0.5 text-xs font-semibold text-sidebar-primary-foreground">
                 {badge}
               </span>
             )}

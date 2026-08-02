@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import Papa from "papaparse";
 import { Upload } from "lucide-react";
 import { bulkImportAgencies, type BulkImportResult } from "@/lib/actions/operations";
@@ -11,6 +12,7 @@ import { Label } from "@/components/ui/label";
 
 export function BulkCsvUpload() {
   const router = useRouter();
+  const t = useTranslations("operations");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   const [result, setResult] = useState<BulkImportResult | null>(null);
@@ -61,12 +63,9 @@ export function BulkCsvUpload() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Upload className="h-4 w-4" />
-          CSV Bulk Upload
+          {t("bulkUpload")}
         </CardTitle>
-        <CardDescription>
-          Import broker leads from CSV. Rows with duplicate phone or WhatsApp are skipped.
-          Include a <strong>Sales</strong> column to auto-assign; leave blank for Open Race.
-        </CardDescription>
+        <CardDescription>{t("bulkUploadHint")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">

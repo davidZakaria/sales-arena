@@ -21,10 +21,10 @@ async function getSidebarBadges(role: string | undefined): Promise<SidebarBadges
   }
 
   if (role === "MANAGER" || role === "DIRECTOR") {
-    const openRaceCount = await prisma.agency.count({
+    const unassignedLeadCount = await prisma.agency.count({
       where: { status: "OPEN_RACE" },
     });
-    return { openRaceCount };
+    return { unassignedLeadCount };
   }
 
   return {};

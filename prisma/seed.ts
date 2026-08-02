@@ -121,6 +121,7 @@ async function main() {
         createdById: operations.id,
         source: "OPERATIONS",
         contractStatus: "MISSING",
+        contractDuration: "6 months",
         claimedAt: daysAgo(5),
         claimExpiresAt: daysFromNow(CLAIM_SLA_DAYS - 5),
       },
@@ -136,6 +137,7 @@ async function main() {
         source: "PUBLIC_PORTAL",
         inboundNotes: "Registered via /join portal",
         contractStatus: "MISSING",
+        contractDuration: "1 year",
         claimedAt: daysAgo(3),
         claimExpiresAt: daysFromNow(CLAIM_SLA_DAYS - 3),
       },
@@ -151,6 +153,7 @@ async function main() {
         createdById: operations.id,
         source: "OPERATIONS",
         contractStatus: "PENDING",
+        contractDuration: "6 months",
         submittedForAuditAt: daysAgo(1),
         claimedAt: daysAgo(20),
         claimExpiresAt: daysFromNow(CLAIM_SLA_DAYS - 20),
@@ -183,6 +186,7 @@ async function main() {
         createdById: operations.id,
         source: "OPERATIONS",
         contractStatus: "SIGNED",
+        contractDuration: "1 year",
         commercialRegister: "CR-445566",
         taxId: "300-987-654",
         claimedAt: daysAgo(45),
@@ -204,7 +208,7 @@ async function main() {
         claimedAt: daysAgo(30),
         claimExpiresAt: daysAgo(5),
       },
-      // —— Open Race market ——
+      // —— Manager assignment queue ——
       {
         name: "Delta Properties",
         type: "C",
@@ -530,9 +534,9 @@ async function main() {
   await createAuditLog(pyramids.id, finance.id, `${finance.name} converted EOI for Nour Ibrahim to contract`);
   await createAuditLog(pyramids.id, finance.id, `${finance.name} converted EOI for Yasmin Adel to contract`);
   await createAuditLog(pyramids.id, operations.id, `${operations.name} verified agency compliance — ${pyramids.name}`);
-  await createAuditLog(delta.id, operations.id, `${operations.name} published ${delta.name} to Open Race`);
-  await createAuditLog(cairoGate.id, operations.id, `${operations.name} published ${cairoGate.name} to Open Race`);
-  await createAuditLog(northCoast.id, operations.id, `${operations.name} published ${northCoast.name} to Open Race`);
+  await createAuditLog(delta.id, operations.id, `${operations.name} sent ${delta.name} to manager assignment queue`);
+  await createAuditLog(cairoGate.id, operations.id, `${operations.name} sent ${cairoGate.name} to manager assignment queue`);
+  await createAuditLog(northCoast.id, operations.id, `${operations.name} sent ${northCoast.name} to manager assignment queue`);
   await createAuditLog(delta.id, yasmine.id, `${yasmine.name} requested assignment for ${delta.name}`);
   await createAuditLog(cairoGate.id, karim.id, `${karim.name} requested assignment for ${cairoGate.name}`);
   await createAuditLog(northCoast.id, tantawy.id, `${tantawy.name} requested assignment for ${northCoast.name}`);
@@ -546,7 +550,7 @@ async function main() {
   console.log("ROLES & LANDING PAGES");
   console.log("──────────────────────────────────────────────────────────");
   console.log(`  Director    ${director.email}     → /dashboard + /manager`);
-  console.log(`  Manager     ${manager.email}      → /manager (Open Race assign, SLA, EOIs)`);
+  console.log(`  Manager     ${manager.email}      → /manager (lead queue, SLA, EOIs)`);
   console.log(`  Operations  ${operations.email}  → /operations (drafts, audit)`);
   console.log(`  Finance     ${finance.email} → /finance (EOI clearance)`);
   console.log(`  Sales       ${tantawy.email}  → /dashboard (Aqar Misr, Nile, Pyramids)`);
@@ -558,8 +562,8 @@ async function main() {
   console.log("  /operations     3 draft leads · 2 audit queue · compliance watch");
   console.log("  /finance        4 pending · 2 verified · 1 rejected · 2 converted EOIs");
   console.log("  /dashboard      Action required · pending audit · EOI metrics");
-  console.log("  /manager        Open Race · SLA breach · dispute · broker EOI stats");
-  console.log("  /open-race      3 agencies · 3 pending assignment requests");
+  console.log("  /manager        3 leads in queue · SLA breach · dispute · broker EOI stats");
+  console.log("  /open-race      Redirects to /manager (managers) or /portfolio (sales)");
   console.log("  /agency/*       Broker contacts tab · compliance vault · EOIs");
   console.log("\nBROKER CONTACTS & SELF-REGISTRATION");
   console.log("──────────────────────────────────────────────────────────");

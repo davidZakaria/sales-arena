@@ -95,6 +95,7 @@ model Agency {
   source              InboundSource  @default(OPERATIONS)
   inboundNotes        String?
   contractStatus      ContractStatus
+  contractDuration    String?
   isDisputed          Boolean        @default(false)
   claimedAt           DateTime?
   claimExpiresAt      DateTime?

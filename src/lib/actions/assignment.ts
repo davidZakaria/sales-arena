@@ -42,7 +42,7 @@ export async function directAssignAgency(agencyId: string, salesUserId: string) 
   ]);
 
   if (!agency || agency.status !== "OPEN_RACE") {
-    throw new Error("Agency is not available for assignment");
+    throw new Error("Lead is not awaiting manager assignment");
   }
 
   if (!salesUser || salesUser.role !== "SALES") {
@@ -73,7 +73,7 @@ export async function directAssignAgency(agencyId: string, salesUserId: string) 
     await createAuditLog(
       agencyId,
       session.user.id,
-      `${session.user.name} directly assigned ${salesUser.name}`,
+      `${session.user.name} assigned lead to ${salesUser.name}`,
       tx,
     );
   });

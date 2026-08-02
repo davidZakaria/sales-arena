@@ -84,6 +84,56 @@ export async function updateAgencyCompliance(
   revalidateAgencyPaths(agencyId);
 }
 
+export async function updateContractDuration(agencyId: string, contractDuration: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !session.user.name) {
+    throw new Error("Unauthorized");
+  }
+
+  const existing = await prisma.agency.findUnique({
+    where: { id: agencyId },
+    include: { coOwners: { select: { id: true } } },
+  });
+
+  if (!existing) {
+    throw new Error("Agency not found");
+  }
+
+  const permissions = getAgencyPermissions(
+    existing,
+    session.user.id,
+    session.user.role,
+  );
+
+  const canEdit =
+    permissions.canEditComplianceFields ||
+    permissions.canUploadDocuments ||
+    permissions.canVerifyAgency;
+
+  if (!canEdit) {
+    throw new Error("You do not have permission to update contract duration");
+  }
+
+  const value = contractDuration.trim() || null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.agency.update({
+      where: { id: agencyId },
+      data: { contractDuration: value },
+    });
+    if (value) {
+      await createAuditLog(
+        agencyId,
+        session.user.id,
+        `${session.user.name} set contract duration: ${value}`,
+        tx,
+      );
+    }
+  });
+
+  revalidateAgencyPaths(agencyId);
+}
+
 export async function uploadComplianceDocument(
   agencyId: string,
   documentType: ComplianceDocumentType,

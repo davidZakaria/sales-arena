@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import type { OperationsOpenRaceRow } from "@/lib/operations/queries";
 import { InboundSourceBadge } from "@/components/agency/inbound-source-badge";
 import { TypeBadge } from "@/components/agency/badges";
@@ -21,11 +24,15 @@ export function OperationsOpenRaceTable({
   agencies: OperationsOpenRaceRow[];
   compact?: boolean;
 }) {
+  const t = useTranslations("operations");
+  const tTables = useTranslations("tables");
+  const tCommon = useTranslations("common");
+
   if (agencies.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          No agencies in Open Race. Publish draft leads to make them available for manager assignment.
+          {t("awaitingAssignmentEmpty")}
         </CardContent>
       </Card>
     );
@@ -37,14 +44,12 @@ export function OperationsOpenRaceTable({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4">
         <div>
-          <CardTitle>Open Race Market</CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Published agencies waiting for a manager to assign a sales rep.
-          </p>
+          <CardTitle>{t("awaitingAssignmentTable")}</CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">{t("awaitingAssignmentHint")}</p>
         </div>
         {compact && agencies.length > 5 && (
-          <Link href="/open-race" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-            View all ({agencies.length})
+          <Link href="/manager" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            {t("viewAll", { count: agencies.length })}
           </Link>
         )}
       </CardHeader>
@@ -52,13 +57,13 @@ export function OperationsOpenRaceTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Agency</TableHead>
-              <TableHead className="hidden sm:table-cell">Type</TableHead>
-              <TableHead className="hidden md:table-cell">Source</TableHead>
-              <TableHead className="hidden lg:table-cell">Location</TableHead>
-              <TableHead className="hidden xl:table-cell">Phone</TableHead>
-              <TableHead className="hidden md:table-cell">Published</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead>{tTables("agency")}</TableHead>
+              <TableHead className="hidden sm:table-cell">{tTables("type")}</TableHead>
+              <TableHead className="hidden md:table-cell">{tTables("source")}</TableHead>
+              <TableHead className="hidden lg:table-cell">{tTables("location")}</TableHead>
+              <TableHead className="hidden xl:table-cell">{tTables("phone")}</TableHead>
+              <TableHead className="hidden md:table-cell">{t("sentToManager")}</TableHead>
+              <TableHead className="text-right">{tCommon("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -89,7 +94,7 @@ export function OperationsOpenRaceTable({
                       "min-h-11 sm:min-h-0",
                     )}
                   >
-                    View
+                    {tTables("view")}
                   </Link>
                 </TableCell>
               </TableRow>

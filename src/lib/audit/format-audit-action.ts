@@ -100,8 +100,25 @@ function matchPatterns(
   if (publish) {
     return {
       kind: "publish",
-      summary: "Published agency to Open Race",
-      detail: `${publish[1]} is now available for sales to claim`,
+      summary: "Sent lead to manager assignment queue",
+      detail: `${publish[1]} is awaiting manager assignment`,
+    };
+  }
+
+  const sentToManager = text.match(/^sent (.+?) to manager assignment queue$/i);
+  if (sentToManager) {
+    return {
+      kind: "publish",
+      summary: "Sent lead to manager assignment queue",
+      detail: `${sentToManager[1]} is awaiting manager assignment`,
+    };
+  }
+
+  const assignLead = text.match(/^assigned lead to (.+)$/i);
+  if (assignLead) {
+    return {
+      kind: "assign",
+      summary: `Assigned lead to ${assignLead[1]}`,
     };
   }
 

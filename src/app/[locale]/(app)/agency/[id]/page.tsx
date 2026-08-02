@@ -11,12 +11,11 @@ import {
   TypeBadge,
 } from "@/components/agency/badges";
 import { ArchiveAgencyButton } from "@/components/agency/archive-agency-button";
-import { DirectAssignSelect } from "@/components/open-race/direct-assign-select";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authOptions } from "@/lib/auth";
-import { getAgencyPermissions, canDirectAssign, canArchiveAgency } from "@/lib/agency/permissions";
+import { getAgencyPermissions, canArchiveAgency } from "@/lib/agency/permissions";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 
@@ -90,16 +89,14 @@ export default async function AgencyPage({
 
   const [agency, salesUsers] = await Promise.all([
     getAgency(id),
-    canDirectAssign(userRole)
-      ? prisma.user.findMany({
-          where: {
-            role: "SALES",
-            ...(userRole === "MANAGER" && userId ? { managerId: userId } : {}),
-          },
-          select: { id: true, name: true, email: true },
-          orderBy: { name: "asc" },
-        })
-      : Promise.resolve([]),
+    prisma.user.findMany({
+      where: {
+        role: "SALES",
+        ...(userRole === "MANAGER" && userId ? { managerId: userId } : {}),
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!agency) {
@@ -136,8 +133,8 @@ export default async function AgencyPage({
           <p className="mt-2 text-sm text-muted-foreground">
             {agency.status === "OPEN_RACE"
               ? userRole === "SALES"
-                ? "Available in Open Race — your manager assigns this territory"
-                : "Available in Open Race — assign to a sales representative"
+                ? "Awaiting manager assignment — you will see this lead in your portfolio once assigned"
+                : "Awaiting manager assignment — assign from Manager Dashboard"
               : agency.status === "PENDING_AUDIT"
                 ? "Compliance documents submitted — awaiting Operations audit"
               : agency.status === "ARCHIVED"
@@ -156,11 +153,6 @@ export default async function AgencyPage({
               <ExternalLink className="mr-2 h-4 w-4" />
               Launch WhatsApp
             </Link>
-          )}
-          {agency.status === "OPEN_RACE" && canDirectAssign(userRole) && (
-            <div className="min-w-[200px]">
-              <DirectAssignSelect agencyId={agency.id} salesUsers={salesUsers} />
-            </div>
           )}
           {canArchiveAgency(userRole) && agency.status !== "ARCHIVED" && (
             <ArchiveAgencyButton agencyId={agency.id} agencyName={agency.name} />
@@ -247,6 +239,7 @@ export default async function AgencyPage({
           commercialRegister={agency.commercialRegister}
           taxId={agency.taxId}
           contractStatus={agency.contractStatus}
+          contractDuration={agency.contractDuration}
           documents={agency.complianceDocuments}
           activityLogs={agency.auditLogs}
           eois={agency.eois}

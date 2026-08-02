@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export type SidebarBadges = {
   auditQueue?: number;
   draftCount?: number;
-  openRaceCount?: number;
+  unassignedLeadCount?: number;
   pendingEois?: number;
 };
 

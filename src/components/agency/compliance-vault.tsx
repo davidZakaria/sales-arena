@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import type { AgencyStatus, ComplianceDocumentType, ContractStatus } from "@/generated/prisma/client";
 import type { AgencyPermissions } from "@/lib/agency/permissions";
 import { REQUIRED_DOCUMENT_TYPES } from "@/lib/agency/normalize-contact";
-import { updateAgencyCompliance } from "@/lib/actions/agency";
+import { updateAgencyCompliance, updateContractDuration } from "@/lib/actions/agency";
 import {
   returnAgencyForRevision,
   verifyAgencyCompliance,
@@ -40,6 +40,7 @@ type ComplianceVaultProps = {
   commercialRegister: string | null;
   taxId: string | null;
   contractStatus: ContractStatus;
+  contractDuration: string | null;
   documents: ComplianceDocumentRow[];
   permissions: AgencyPermissions;
 };
@@ -83,6 +84,7 @@ export function ComplianceVault({
   commercialRegister,
   taxId,
   contractStatus,
+  contractDuration,
   documents,
   permissions,
 }: ComplianceVaultProps) {
@@ -91,6 +93,7 @@ export function ComplianceVault({
   const [cr, setCr] = useState(commercialRegister ?? "");
   const [tax, setTax] = useState(taxId ?? "");
   const [status, setStatus] = useState<ContractStatus>(contractStatus);
+  const [duration, setDuration] = useState(contractDuration ?? "");
   const [message, setMessage] = useState("");
   const [returnReason, setReturnReason] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -108,6 +111,23 @@ export function ComplianceVault({
     uploadedTypes.has(type),
   ).length;
   const missingTypes = REQUIRED_DOCUMENT_TYPES.filter((type) => !uploadedTypes.has(type));
+
+  const canEditDuration =
+    permissions.canEditComplianceFields ||
+    permissions.canUploadDocuments ||
+    permissions.canVerifyAgency;
+
+  function handleSaveDuration() {
+    startTransition(async () => {
+      try {
+        await updateContractDuration(agencyId, duration);
+        setMessage(t("contractDurationSaved"));
+        router.refresh();
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : t("contractDurationFailed"));
+      }
+    });
+  }
 
   function handleSave() {
     startTransition(async () => {
@@ -222,6 +242,32 @@ export function ComplianceVault({
               onError={setMessage}
             />
           ))}
+        </div>
+
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <Label htmlFor="contractDuration">{t("contractDurationLabel")}</Label>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t("contractDurationHint")}</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              id="contractDuration"
+              value={duration}
+              onChange={(event) => setDuration(event.target.value)}
+              placeholder={t("contractDurationPlaceholder")}
+              disabled={!canEditDuration || isPending}
+              className="min-h-11 flex-1"
+            />
+            {canEditDuration && (
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 shrink-0"
+                disabled={isPending}
+                onClick={handleSaveDuration}
+              >
+                {isPending ? t("saving") : t("saveContractDuration")}
+              </Button>
+            )}
+          </div>
         </div>
 
         {permissions.canVerifyAgency && (

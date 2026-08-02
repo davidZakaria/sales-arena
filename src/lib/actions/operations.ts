@@ -27,12 +27,9 @@ async function requireOperations() {
 }
 
 import {
-  isBlankSales,
   normalizeBulkImportRows,
-  normalizeName,
 } from "@/lib/agency/bulk-import";
 import { canCreateAgency, canPublishToOpenRace } from "@/lib/agency/permissions";
-import { buildClaimExpiry } from "@/lib/claims/helpers";
 import { findDuplicateAgency } from "@/lib/agency/inbound-lead";
 
 export type { DuplicateAgencyError };
@@ -65,6 +62,11 @@ export async function createAgencyDraft(data: {
 }
 
 export async function publishAgencyToOpenRace(agencyId: string) {
+  return sendLeadToManager(agencyId);
+}
+
+/** Ops releases a vetted lead to the manager assignment queue (OPEN_RACE status). */
+export async function sendLeadToManager(agencyId: string) {
   const session = await requireOperations();
   if (!canPublishToOpenRace(session.user.role)) {
     throw new Error("Unauthorized");
@@ -72,7 +74,11 @@ export async function publishAgencyToOpenRace(agencyId: string) {
 
   const agency = await prisma.agency.findUnique({ where: { id: agencyId } });
   if (!agency || agency.status !== "DRAFT") {
-    throw new Error("Agency must be in DRAFT status to publish");
+    throw new Error("Lead must be in DRAFT status to send to manager");
+  }
+
+  if (!agency.name?.trim() || !agency.repPhone1?.trim()) {
+    throw new Error("Lead name and phone are required before sending to manager");
   }
 
   await prisma.$transaction(async (tx) => {
@@ -83,12 +89,13 @@ export async function publishAgencyToOpenRace(agencyId: string) {
     await createAuditLog(
       agencyId,
       session.user.id,
-      `${session.user.name} published ${agency.name} to Open Race`,
+      `${session.user.name} sent ${agency.name} to manager assignment queue`,
       tx,
     );
   });
 
   revalidateOpsPaths(agencyId);
+  revalidatePath("/manager");
 }
 
 export async function verifyAgencyCompliance(
@@ -182,15 +189,6 @@ export async function bulkImportAgencies(
   const session = await requireOperations();
   const normalizedRows = normalizeBulkImportRows(rows);
 
-  const salesUsers = await prisma.user.findMany({
-    where: { role: "SALES" },
-    select: { id: true, name: true },
-  });
-
-  const salesByName = new Map(
-    salesUsers.map((user) => [normalizeName(user.name), user]),
-  );
-
   const existingAgencies = await prisma.agency.findMany({
     select: { repPhone1: true, whatsappLink: true },
   });
@@ -238,13 +236,6 @@ export async function bulkImportAgencies(
       continue;
     }
 
-    const assignToSales = !isBlankSales(row.sales);
-    const salesUser = assignToSales
-      ? salesByName.get(normalizeName(row.sales!))
-      : undefined;
-
-    const status = salesUser ? ("ASSIGNED" as const) : ("OPEN_RACE" as const);
-
     const agency = await prisma.agency.create({
       data: {
         name: row.name.trim(),
@@ -252,21 +243,17 @@ export async function bulkImportAgencies(
         location: row.location,
         repPhone1: row.repPhone1,
         whatsappLink: row.whatsappLink,
-        status,
+        status: "DRAFT",
+        source: "OPERATIONS",
         createdById: session.user.id,
-        primaryOwnerId: salesUser?.id ?? null,
         contractStatus: "MISSING",
-        claimExpiresAt: salesUser ? buildClaimExpiry() : null,
-        claimedAt: salesUser ? new Date() : null,
       },
     });
 
     await createAuditLog(
       agency.id,
       session.user.id,
-      salesUser
-        ? `${session.user.name} bulk-imported ${row.name} → ASSIGNED (${salesUser.name})`
-        : `${session.user.name} bulk-imported ${row.name} → OPEN_RACE`,
+      `${session.user.name} bulk-imported ${row.name} (DRAFT — send to manager when ready)`,
     );
 
     existingAgencies.push({

@@ -11,9 +11,11 @@ import {
   getPendingEoisForManager,
 } from "@/lib/agency/eoi-queries";
 import { redirectIfSpecialistRole } from "@/lib/navigation/role-home";
+import { canDirectAssign } from "@/lib/agency/permissions";
 import { EoiStatusBadge } from "@/components/agency/eoi-badges";
 import { BrokerEoiPerformanceTable } from "@/components/manager/broker-eoi-performance-table";
 import { ManagerDisputesTable } from "@/components/manager/manager-disputes-table";
+import { ManagerLeadAssignmentTable } from "@/components/manager/manager-lead-assignment-table";
 import { SlaBreachedAssignmentsTable } from "@/components/manager/sla-breached-assignments-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -73,6 +75,22 @@ async function getSlaBreachedAgencies() {
   }));
 }
 
+async function getUnassignedLeads() {
+  return prisma.agency.findMany({
+    where: { status: "OPEN_RACE" },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      location: true,
+      type: true,
+      source: true,
+      repPhone1: true,
+      createdAt: true,
+    },
+  });
+}
+
 export default async function ManagerPage() {
   const session = await getServerSession(authOptions);
 
@@ -88,15 +106,32 @@ export default async function ManagerPage() {
   const viewerId = session.user.id;
   const viewerRole = session.user.role;
 
-  const [openRaceCount, slaBreached, disputedAgencies, pendingEoiCount, pendingEois, brokerStats] =
-    await Promise.all([
-      prisma.agency.count({ where: { status: "OPEN_RACE" } }),
-      getSlaBreachedAgencies(),
-      getDisputedAgencies(),
-      countPendingEoisForManager(viewerId, viewerRole),
-      getPendingEoisForManager(viewerId, viewerRole),
-      getBrokerEoiStatsForManager(viewerId, viewerRole),
-    ]);
+  const [
+    unassignedLeads,
+    salesUsers,
+    slaBreached,
+    disputedAgencies,
+    pendingEoiCount,
+    pendingEois,
+    brokerStats,
+  ] = await Promise.all([
+    getUnassignedLeads(),
+    canDirectAssign(viewerRole)
+      ? prisma.user.findMany({
+          where: {
+            role: "SALES",
+            ...(viewerRole === "MANAGER" ? { managerId: viewerId } : {}),
+          },
+          select: { id: true, name: true, email: true },
+          orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
+    getSlaBreachedAgencies(),
+    getDisputedAgencies(),
+    countPendingEoisForManager(viewerId, viewerRole),
+    getPendingEoisForManager(viewerId, viewerRole),
+    getBrokerEoiStatsForManager(viewerId, viewerRole),
+  ]);
 
   const t = await getTranslations("manager");
   const tTables = await getTranslations("tables");
@@ -115,14 +150,12 @@ export default async function ManagerPage() {
         <Card className="metric-info">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-current/70">
-              {t("openRaceAvailable")}
+              {t("leadsAwaitingAssignment")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">{openRaceCount}</p>
-            <Link href="/open-race" className="mt-1 inline-block text-xs underline opacity-80">
-              {t("assignFromOpenRace")}
-            </Link>
+            <p className="text-3xl font-semibold">{unassignedLeads.length}</p>
+            <p className="mt-1 text-xs opacity-80">{t("leadsAwaitingHint")}</p>
           </CardContent>
         </Card>
         <Card className="metric-danger">
@@ -147,6 +180,8 @@ export default async function ManagerPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ManagerLeadAssignmentTable leads={unassignedLeads} salesUsers={salesUsers} />
 
       <Card>
         <CardHeader>
@@ -200,9 +235,7 @@ export default async function ManagerPage() {
                     </TableCell>
                     <TableCell>{eoi.clientName}</TableCell>
                     <TableCell>{eoi.user.name}</TableCell>
-                    <TableCell>
-                      {eoi.brokerContact?.name ?? "—"}
-                    </TableCell>
+                    <TableCell>{eoi.brokerContact?.name ?? "—"}</TableCell>
                     <TableCell>{eoi.amount.toLocaleString()} EGP</TableCell>
                     <TableCell>
                       <EoiStatusBadge status={eoi.status} />
