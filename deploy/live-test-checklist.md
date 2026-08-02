@@ -94,8 +94,8 @@ Same as Manager; **Direct Assign** shows all SALES reps (not just direct reports
 bash deploy/vps-healthcheck.sh
 
 # HTTP
-curl -sS -o /dev/null -w "home %{http_code}\n" http://127.0.0.1:3005/
-curl -sS -o /dev/null -w "login %{http_code}\n" http://127.0.0.1:3005/login
+curl -sS -o /dev/null -w "home %{http_code}\n" http://127.0.0.1:3005/en/login
+curl -sS -o /dev/null -w "join %{http_code}\n" http://127.0.0.1:3005/en/join
 
 # PM2
 pm2 status sales-arena
@@ -115,3 +115,59 @@ npx prisma migrate status
 npm run db:seed
 pm2 reload sales-arena
 ```
+
+---
+
+## 7. Public broker intake (`/join`)
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | Open `/join` (no login) | Broker registration form |
+| 2 | Submit unique agency + phone | Success message; draft in Ops Hub |
+| 3 | Submit duplicate phone (`+201012345678`) | Friendly duplicate error (no internal details) |
+| 4 | Fill hidden honeypot field (website) | Submission rejected |
+
+---
+
+## 8. WhatsApp webhook (`POST /api/webhooks/whatsapp`)
+
+Requires `WHATSAPP_WEBHOOK_SECRET` in `.env`.
+
+```bash
+# Local or VPS (set secret from .env)
+export WHATSAPP_WEBHOOK_SECRET="your-secret"
+bash deploy/test-whatsapp-webhook.sh http://127.0.0.1:3005
+```
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | POST with valid Bearer token + new phone | `200` `{ ok: true, agencyId }` |
+| 2 | Ops → Draft Leads | New row with **WhatsApp** source badge |
+| 3 | POST same phone again | `409 Duplicate broker` |
+| 4 | POST without / wrong token | `401 Unauthorized` |
+
+---
+
+## 9. EOI pipeline — Sales submit (`tantawy@newjerseyegypt.com`)
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | **Aqar Misr** → **EOIs** tab | Seed EOI **Pending Finance** visible |
+| 2 | **Submit EOI** on **Aqar Misr** (ASSIGNED) | New row pending Finance |
+| 3 | Co-pilot **Karim** on **Aqar Misr** | Can also submit EOI |
+| 4 | Open Race agency | No Submit EOI (ASSIGNED/VERIFIED only) |
+
+---
+
+## 10. Finance Hub — EOI clearance (`finance@newjerseyegypt.com`)
+
+| Step | Action | Expected |
+|------|--------|----------|
+| 1 | Log in → sidebar **Finance Hub** only | Badge = pending EOI count |
+| 2 | `/finance` → EOI Clearance Queue | Seed EOI for Aqar Misr listed |
+| 3 | **Review** → **Verify Funds** | Status → Verified |
+| 4 | Submit new EOI (as Sales) → **Reject** with notes | Status → Rejected + notes |
+| 5 | Submit new EOI → **Convert to Contract** | EOI Converted; agency contract **Signed** |
+| 6 | Ops user on agency EOIs tab | Read-only view; **cannot** approve |
+
+Password for Finance demo user: **`brm123456`** (`finance@newjerseyegypt.com`)

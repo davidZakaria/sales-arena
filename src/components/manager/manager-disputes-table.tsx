@@ -46,8 +46,8 @@ export function ManagerDisputesTable({ agencies }: { agencies: DisputedAgencyRow
       <TableHeader>
         <TableRow>
           <TableHead>Agency</TableHead>
-          <TableHead>Primary Owner</TableHead>
-          <TableHead>Disputant</TableHead>
+          <TableHead className="hidden sm:table-cell">Primary Owner</TableHead>
+          <TableHead className="hidden md:table-cell">Disputant</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -57,21 +57,26 @@ export function ManagerDisputesTable({ agencies }: { agencies: DisputedAgencyRow
             <TableCell>
               <Link
                 href={`/agency/${agency.id}`}
-                className="font-medium text-slate-900 hover:underline"
+                className="font-medium text-foreground hover:underline"
               >
                 {agency.name}
               </Link>
-              <p className="text-xs text-slate-500">{agency.location}</p>
+              <p className="text-xs text-muted-foreground">{agency.location}</p>
+              <p className="mt-1 text-xs text-muted-foreground sm:hidden">
+                Owner: {agency.primaryOwnerName ?? "—"}
+              </p>
             </TableCell>
-            <TableCell>{agency.primaryOwnerName ?? "—"}</TableCell>
-            <TableCell>
+            <TableCell className="hidden sm:table-cell">
+              {agency.primaryOwnerName ?? "—"}
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
               {agency.disputant ? (
                 <div>
                   <p className="font-medium">{agency.disputant.name}</p>
-                  <p className="text-xs text-slate-500">{agency.disputant.email}</p>
+                  <p className="text-xs text-muted-foreground">{agency.disputant.email}</p>
                 </div>
               ) : (
-                <span className="text-slate-400">Unknown</span>
+                <span className="text-muted-foreground">Unknown</span>
               )}
             </TableCell>
             <TableCell className="text-right">
@@ -79,6 +84,7 @@ export function ManagerDisputesTable({ agencies }: { agencies: DisputedAgencyRow
                 <Button
                   size="sm"
                   variant="outline"
+                  className="min-h-11 sm:min-h-0"
                   disabled={isPending || !agency.disputant}
                   onClick={() =>
                     runAction(() =>
@@ -91,6 +97,7 @@ export function ManagerDisputesTable({ agencies }: { agencies: DisputedAgencyRow
                 <Button
                   size="sm"
                   variant="outline"
+                  className="min-h-11 sm:min-h-0"
                   disabled={isPending || !agency.disputant}
                   onClick={() =>
                     runAction(() =>
@@ -102,8 +109,8 @@ export function ManagerDisputesTable({ agencies }: { agencies: DisputedAgencyRow
                 </Button>
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="text-rose-700 hover:bg-rose-50"
+                  variant="destructive"
+                  className="min-h-11 sm:min-h-0"
                   disabled={isPending}
                   onClick={() => runAction(() => rejectDispute(agency.id))}
                 >

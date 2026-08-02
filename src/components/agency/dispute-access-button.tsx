@@ -46,7 +46,7 @@ export function DisputeAccessButton({
       <Button
         type="button"
         variant="outline"
-        className="border-rose-200 text-rose-700 hover:bg-rose-50"
+        className="status-danger"
         onClick={() => {
           setError("");
           setOpen(true);
@@ -65,13 +65,13 @@ export function DisputeAccessButton({
               you as a Co-Pilot or transfer ownership.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {error && <p className="text-sm text-rose-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
             <Button
               type="button"
+              variant="destructive"
               disabled={isPending}
-              className="bg-rose-600 hover:bg-rose-700"
               onClick={handleDispute}
             >
               {isPending ? "Submitting…" : "Submit Dispute"}

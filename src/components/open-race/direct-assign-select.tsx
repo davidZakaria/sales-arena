@@ -33,9 +33,9 @@ export function DirectAssignSelect({ agencyId, salesUsers }: DirectAssignSelectP
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs text-slate-500">Direct Assign</Label>
+      <Label className="text-xs text-muted-foreground">Direct Assign</Label>
       <Select disabled={isPending || salesUsers.length === 0} onValueChange={handleAssign}>
-        <SelectTrigger className="h-9">
+        <SelectTrigger className="min-h-11 sm:h-9">
           <SelectValue placeholder="Assign to rep…" />
         </SelectTrigger>
         <SelectContent>
@@ -47,7 +47,7 @@ export function DirectAssignSelect({ agencyId, salesUsers }: DirectAssignSelectP
         </SelectContent>
       </Select>
       {salesUsers.length === 0 && (
-        <p className="text-xs text-slate-400">No eligible sales reps</p>
+        <p className="text-xs text-muted-foreground">No eligible sales reps</p>
       )}
     </div>
   );

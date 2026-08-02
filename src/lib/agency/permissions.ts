@@ -1,4 +1,12 @@
 import type { AgencyStatus, Role } from "@/generated/prisma/client";
+import {
+  canSubmitEOI as canSubmitEOIForAgency,
+  canViewEOIs as canViewEOIsForAgency,
+} from "@/lib/agency/eoi-permissions";
+import {
+  canManageBrokerContacts as canManageBrokerContactsForAgency,
+  canViewBrokerContacts as canViewBrokerContactsForAgency,
+} from "@/lib/agency/broker-contact-permissions";
 
 export type AgencyPermissionContext = {
   primaryOwnerId: string | null;
@@ -10,6 +18,7 @@ export type AgencyPermissionRole =
   | "primary"
   | "co-pilot"
   | "operations"
+  | "finance"
   | "manager"
   | "director"
   | "non-owner";
@@ -23,10 +32,28 @@ export type AgencyPermissions = {
   canDispute: boolean;
   canVerifyAgency: boolean;
   canReturnForRevision: boolean;
+  canViewEOIs: boolean;
+  canSubmitEOI: boolean;
+  canViewBrokerContacts: boolean;
+  canManageBrokerContacts: boolean;
   isPrimaryOwner: boolean;
   isCoPilot: boolean;
   isManagerOverride: boolean;
   isAuditMode: boolean;
+};
+
+const noAccess: Omit<AgencyPermissions, "role" | "isPrimaryOwner" | "isCoPilot" | "isManagerOverride" | "isAuditMode"> = {
+  canView: false,
+  canEditComplianceFields: false,
+  canUploadDocuments: false,
+  canManageCoOwners: false,
+  canDispute: false,
+  canVerifyAgency: false,
+  canReturnForRevision: false,
+  canViewEOIs: false,
+  canSubmitEOI: false,
+  canViewBrokerContacts: false,
+  canManageBrokerContacts: false,
 };
 
 export function getAgencyPermissions(
@@ -36,10 +63,21 @@ export function getAgencyPermissions(
 ): AgencyPermissions {
   const isManagerOverride = userRole === "MANAGER" || userRole === "DIRECTOR";
   const isOperations = userRole === "OPERATIONS";
+  const isFinance = userRole === "FINANCE";
   const isPrimaryOwner = Boolean(userId && agency.primaryOwnerId === userId);
   const isCoPilot = Boolean(
     userId && agency.coOwners.some((coOwner) => coOwner.id === userId),
   );
+
+  const eoiFlags = {
+    canViewEOIs: canViewEOIsForAgency(agency, userId, userRole),
+    canSubmitEOI: canSubmitEOIForAgency(agency, userId, userRole),
+  };
+
+  const brokerContactFlags = {
+    canViewBrokerContacts: canViewBrokerContactsForAgency(agency, userId, userRole),
+    canManageBrokerContacts: canManageBrokerContactsForAgency(agency, userId, userRole),
+  };
 
   const base = {
     isPrimaryOwner,
@@ -50,7 +88,7 @@ export function getAgencyPermissions(
 
   if (agency.status === "ARCHIVED") {
     return {
-      role: isOperations ? "operations" : isManagerOverride ? (userRole === "DIRECTOR" ? "director" : "manager") : isPrimaryOwner ? "primary" : isCoPilot ? "co-pilot" : "non-owner",
+      role: isFinance ? "finance" : isOperations ? "operations" : isManagerOverride ? (userRole === "DIRECTOR" ? "director" : "manager") : isPrimaryOwner ? "primary" : isCoPilot ? "co-pilot" : "non-owner",
       canView: Boolean(userId),
       canEditComplianceFields: false,
       canUploadDocuments: false,
@@ -58,6 +96,10 @@ export function getAgencyPermissions(
       canDispute: false,
       canVerifyAgency: false,
       canReturnForRevision: false,
+      canViewEOIs: eoiFlags.canViewEOIs,
+      canSubmitEOI: false,
+      ...brokerContactFlags,
+      canManageBrokerContacts: false,
       ...base,
       isAuditMode: false,
     };
@@ -66,14 +108,27 @@ export function getAgencyPermissions(
   if (!userId) {
     return {
       role: "non-owner",
-      canView: false,
+      ...noAccess,
+      ...base,
+    };
+  }
+
+  if (isFinance) {
+    return {
+      role: "finance",
+      canView: true,
       canEditComplianceFields: false,
       canUploadDocuments: false,
       canManageCoOwners: false,
       canDispute: false,
       canVerifyAgency: false,
       canReturnForRevision: false,
+      ...eoiFlags,
+      canSubmitEOI: false,
+      ...brokerContactFlags,
+      canManageBrokerContacts: false,
       ...base,
+      isAuditMode: false,
     };
   }
 
@@ -87,6 +142,10 @@ export function getAgencyPermissions(
       canDispute: false,
       canVerifyAgency: agency.status === "PENDING_AUDIT",
       canReturnForRevision: agency.status === "PENDING_AUDIT",
+      ...eoiFlags,
+      canSubmitEOI: false,
+      ...brokerContactFlags,
+      canManageBrokerContacts: false,
       ...base,
       isAuditMode: agency.status === "PENDING_AUDIT",
     };
@@ -102,6 +161,9 @@ export function getAgencyPermissions(
       canDispute: false,
       canVerifyAgency: false,
       canReturnForRevision: agency.status === "PENDING_AUDIT",
+      ...eoiFlags,
+      canSubmitEOI: false,
+      ...brokerContactFlags,
       ...base,
     };
   }
@@ -120,6 +182,8 @@ export function getAgencyPermissions(
       canDispute: false,
       canVerifyAgency: false,
       canReturnForRevision: false,
+      ...eoiFlags,
+      ...brokerContactFlags,
       ...base,
     };
   }
@@ -134,6 +198,8 @@ export function getAgencyPermissions(
       canDispute: false,
       canVerifyAgency: false,
       canReturnForRevision: false,
+      ...eoiFlags,
+      ...brokerContactFlags,
       ...base,
     };
   }
@@ -152,6 +218,10 @@ export function getAgencyPermissions(
     canDispute,
     canVerifyAgency: false,
     canReturnForRevision: false,
+    canViewEOIs: false,
+    canSubmitEOI: false,
+    canViewBrokerContacts: false,
+    canManageBrokerContacts: false,
     ...base,
   };
 }
@@ -164,13 +234,6 @@ export function canPublishToOpenRace(role: string | undefined): boolean {
   return role === "OPERATIONS";
 }
 
-export function canRequestAssignment(
-  role: string | undefined,
-  agencyStatus: AgencyStatus,
-): boolean {
-  return role === "SALES" && agencyStatus === "OPEN_RACE";
-}
-
 export function canDirectAssign(role: string | undefined): boolean {
   return role === "MANAGER" || role === "DIRECTOR";
 }
@@ -181,6 +244,10 @@ export function canManageAssignmentRequests(role: string | undefined): boolean {
 
 export function canArchiveAgency(role: string | undefined): boolean {
   return role === "OPERATIONS" || role === "MANAGER" || role === "DIRECTOR";
+}
+
+export function canAccessFinanceHub(role: string | undefined): boolean {
+  return role === "FINANCE";
 }
 
 /** @deprecated use canEditComplianceFields */

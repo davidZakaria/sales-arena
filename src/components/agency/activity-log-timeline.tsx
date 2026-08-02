@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { ActivityLogItem } from "@/components/audit/activity-log-item";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export type ActivityLogEntry = {
@@ -9,35 +13,29 @@ export type ActivityLogEntry = {
   };
 };
 
-function formatTimestamp(date: Date) {
-  return new Intl.DateTimeFormat("en-EG", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date));
-}
-
 export function ActivityLogTimeline({ logs }: { logs: ActivityLogEntry[] }) {
+  const t = useTranslations("agency");
+  const tCommon = useTranslations("common");
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Activity Log</CardTitle>
-        <CardDescription>
-          Immutable audit trail showing who performed each action on this agency.
-        </CardDescription>
+        <CardTitle>{t("activityLog")}</CardTitle>
+        <CardDescription>{t("activityLogDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
         {logs.length === 0 ? (
-          <p className="text-sm text-slate-500">No activity recorded yet.</p>
+          <p className="text-sm text-muted-foreground">{tCommon("noActivity")}</p>
         ) : (
-          <ol className="relative ml-3 space-y-6 border-l border-slate-200">
+          <ol className="relative ms-3 space-y-6 border-s border-border">
             {logs.map((log) => (
-              <li key={log.id} className="relative ml-6">
-                <span className="absolute top-1.5 -left-[1.65rem] h-3 w-3 rounded-full border-2 border-white bg-slate-400 ring-1 ring-slate-200" />
-                <p className="text-sm font-medium text-slate-900">{log.action}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {log.user.name} · {formatTimestamp(log.createdAt)}
-                </p>
-              </li>
+              <ActivityLogItem
+                key={log.id}
+                action={log.action}
+                actorName={log.user.name}
+                createdAt={log.createdAt}
+                variant="timeline"
+              />
             ))}
           </ol>
         )}

@@ -2,28 +2,119 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * BRM Color Story — "Trust Pipeline"
+ * ---------------------------------
+ * Brokers move agencies through a compliance pipeline: intake → assign → document
+ * → verify → revenue (EOI). Colors mirror that journey and New Jersey's corporate
+ * trust, without low-contrast "ghost text."
+ *
+ * Foundation (Slate): neutral workspace — documents, data, audit trails
+ * Primary (Blue): forward action — assign, submit, navigate
+ * Success (Emerald): cleared / verified / signed — pipeline complete
+ * Warning (Amber): attention — missing docs, pending review, SLA
+ * Danger (Rose): blockers — breach, reject, dispute, missing contract
+ *
+ * Light = "Daylight Operations" — crisp clinical workspace
+ * Dark  = "Command Center" — deep slate, border-defined depth (no muddy shadows)
+ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Surfaces */
+    --background: 210 40% 98%; /* #f8fafc — soft slate workspace */
+    --foreground: 222 47% 11%; /* #0f172a — primary text, WCAG AAA on bg */
+    --card: 0 0% 100%; /* pure white cards */
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Brand action — corporate blue */
+    --primary: 221 83% 53%; /* #2563eb */
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
+
+    --secondary: 214 32% 95%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Secondary text — #334155, never washed-out gray */
+    --muted: 214 32% 95%;
+    --muted-foreground: 215 25% 27%;
+
+    --accent: 214 32% 93%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 347 77% 50%; /* #e11d48 rose */
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+
+    --border: 214 32% 91%; /* crisp 1px borders, not shadow depth */
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    /* Semantic status (pipeline stages) */
+    --success: 160 84% 39%; /* #10b981 */
+    --success-foreground: 166 76% 10%;
+    --success-muted: 152 76% 95%;
+    --warning: 38 92% 50%; /* #f59e0b */
+    --warning-foreground: 26 90% 18%;
+    --warning-muted: 48 96% 95%;
+    --danger: 347 77% 50%;
+    --danger-foreground: 343 87% 16%;
+    --danger-muted: 356 100% 97%;
+
+    /* Sidebar — anchored "command rail" (dark in both themes) */
+    --sidebar: 222 47% 7%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-muted: 215 16% 62%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-border: 217 33% 14%;
+    --sidebar-primary: 221 83% 58%;
+
     --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 222 47% 7%; /* #020617 family — not pure black */
+    --foreground: 210 40% 98%; /* #f8fafc */
+    --card: 217 33% 17%; /* #1e293b elevated surface */
+    --card-foreground: 210 40% 98%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%; /* #3b82f6 — readable indigo on dark */
+    --primary-foreground: 222 47% 7%;
+
+    --secondary: 217 33% 20%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 20%;
+    --muted-foreground: 214 32% 84%; /* #cbd5e1 — secondary, high contrast */
+
+    --accent: 217 33% 22%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 347 77% 42%; /* #be123c */
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 25% 27%; /* #334155 border highlight */
+    --input: 215 25% 27%;
+    --ring: 217 91% 60%;
+
+    --success: 160 84% 35%; /* #059669 */
+    --success-foreground: 152 81% 88%;
+    --success-muted: 166 76% 10%;
+    --warning: 32 95% 44%; /* #d97706 */
+    --warning-foreground: 48 96% 89%;
+    --warning-muted: 26 90% 12%;
+    --danger: 347 77% 42%;
+    --danger-foreground: 356 100% 92%;
+    --danger-muted: 343 87% 12%;
+
+    --sidebar: 222 47% 5%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-muted: 215 16% 65%;
+    --sidebar-accent: 217 33% 14%;
+    --sidebar-border: 217 33% 12%;
+    --sidebar-primary: 217 91% 60%;
   }
 
   * {
@@ -31,6 +122,103 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  thead,
+  tbody,
+  tfoot,
+  tr {
+    border-color: inherit;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+}
+
+@layer utilities {
+  /* Status badges & metric tiles — theme-aware */
+  .status-success {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-800;
+  }
+  .dark .status-success {
+    @apply border-emerald-800/50 bg-emerald-950/40 text-emerald-300;
+  }
+
+  .status-warning {
+    @apply border-amber-200 bg-amber-50 text-amber-900;
+  }
+  .dark .status-warning {
+    @apply border-amber-800/50 bg-amber-950/40 text-amber-300;
+  }
+
+  .status-danger {
+    @apply border-rose-200 bg-rose-50 text-rose-800;
+  }
+  .dark .status-danger {
+    @apply border-rose-800/50 bg-rose-950/40 text-rose-300;
+  }
+
+  .status-info {
+    @apply border-blue-200 bg-blue-50 text-blue-900;
+  }
+  .dark .status-info {
+    @apply border-blue-800/50 bg-blue-950/40 text-blue-300;
+  }
+
+  .status-neutral {
+    @apply border-border bg-muted text-foreground;
+  }
+
+  .status-violet {
+    @apply border-violet-200 bg-violet-50 text-violet-900;
+  }
+  .dark .status-violet {
+    @apply border-violet-800/50 bg-violet-950/40 text-violet-300;
+  }
+
+  /* Metric card surfaces (dashboard / ops pipeline) */
+  .metric-warning {
+    @apply border-amber-200 bg-amber-50 text-amber-950;
+  }
+  .dark .metric-warning {
+    @apply border-amber-800/40 bg-amber-950/30 text-amber-100;
+  }
+
+  .metric-violet {
+    @apply border-violet-200 bg-violet-50 text-violet-950;
+  }
+  .dark .metric-violet {
+    @apply border-violet-800/40 bg-violet-950/30 text-violet-100;
+  }
+
+  .metric-success {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-950;
+  }
+  .dark .metric-success {
+    @apply border-emerald-800/40 bg-emerald-950/30 text-emerald-100;
+  }
+
+  .metric-info {
+    @apply border-blue-200 bg-blue-50 text-blue-950;
+  }
+  .dark .metric-info {
+    @apply border-blue-800/40 bg-blue-950/30 text-blue-100;
+  }
+
+  .metric-danger {
+    @apply border-rose-200 bg-rose-50 text-rose-950;
+  }
+  .dark .metric-danger {
+    @apply border-rose-800/40 bg-rose-950/30 text-rose-100;
+  }
+
+  .metric-slate {
+    @apply border-border bg-card text-card-foreground;
   }
 }

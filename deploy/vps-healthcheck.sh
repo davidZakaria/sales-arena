@@ -44,7 +44,7 @@ fi
 echo
 
 echo "[5] Local HTTP check"
-curl -sS -o /dev/null -w "  curl 127.0.0.1:${PORT} -> HTTP %{http_code}\n" "http://127.0.0.1:${PORT}/" || echo "  curl failed"
+curl -sS -o /dev/null -w "  curl 127.0.0.1:${PORT} -> HTTP %{http_code}\n" "http://127.0.0.1:${PORT}/en/login" || echo "  curl failed"
 echo
 
 echo "[6] Nginx site"
@@ -59,7 +59,7 @@ fi
 echo
 
 echo "[7] Public domain check"
-curl -sS -o /dev/null -w "  curl http://${DOMAIN} -> HTTP %{http_code}\n" "http://${DOMAIN}/" || echo "  public curl failed (DNS/nginx/firewall?)"
+curl -sS -o /dev/null -w "  curl http://${DOMAIN} -> HTTP %{http_code}\n" "http://${DOMAIN}/en/login" || echo "  public curl failed (DNS/nginx/firewall?)"
 echo
 
 echo "[8] Recent PM2 logs"

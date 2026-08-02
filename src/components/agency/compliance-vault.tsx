@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FileText, UploadCloud } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type ComplianceDocumentRow = {
   id: string;
@@ -136,15 +137,19 @@ export function ComplianceVault({
   }
 
   return (
-    <Card className={permissions.isAuditMode ? "border-amber-300 ring-1 ring-amber-200" : undefined}>
+    <Card
+      className={cn(
+        permissions.isAuditMode && "border-warning ring-1 ring-warning/30",
+      )}
+    >
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
           <CardTitle>Legal & Compliance Vault</CardTitle>
           {permissions.isAuditMode && (
-            <Badge className="bg-amber-100 text-amber-900 hover:bg-amber-100">Audit Mode</Badge>
+            <Badge className="status-warning hover:opacity-90">Audit Mode</Badge>
           )}
           {fieldsLocked && permissions.isPrimaryOwner && agencyStatus === "ASSIGNED" && (
-            <Badge variant="outline" className="border-slate-300 text-slate-600">
+            <Badge variant="outline" className="status-neutral">
               Locked for Ops Audit
             </Badge>
           )}
@@ -152,7 +157,7 @@ export function ComplianceVault({
         <CardDescription>
           Track السجل التجاري, الرقم الضريبي, and contract status for this agency.
           {waitingForAudit && (
-            <span className="mt-1 block font-medium text-amber-700">
+            <span className="mt-1 block font-medium text-warning">
               Documents submitted. Waiting for Operations Audit.
             </span>
           )}
@@ -162,13 +167,13 @@ export function ComplianceVault({
         {documents.length > 0 && (
           <div className="space-y-2">
             <Label>Uploaded Documents</Label>
-            <ul className="divide-y rounded-lg border border-slate-200 bg-slate-50">
+            <ul className="divide-y divide-border rounded-lg border border-border bg-muted/50">
               {documents.map((doc) => (
                 <li key={doc.id} className="flex items-center gap-3 px-4 py-3 text-sm">
-                  <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-slate-800">{doc.fileName}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="truncate font-medium text-foreground">{doc.fileName}</p>
+                    <p className="text-xs text-muted-foreground">
                       {DOCUMENT_TYPE_LABELS[doc.documentType]} · {doc.uploadedBy.name} ·{" "}
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </p>
@@ -179,51 +184,53 @@ export function ComplianceVault({
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="commercialRegister">السجل التجاري (Commercial Register)</Label>
-          <Input
-            id="commercialRegister"
-            value={cr}
-            onChange={(event) => setCr(event.target.value)}
-            placeholder="Enter commercial register number"
-            disabled={fieldsLocked}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="taxId">الرقم الضريبي (Tax ID)</Label>
-          <Input
-            id="taxId"
-            value={tax}
-            onChange={(event) => setTax(event.target.value)}
-            placeholder="Enter tax ID"
-            disabled={fieldsLocked}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Contract Status</Label>
-          <Select
-            value={status}
-            onValueChange={(value) => setStatus(value as ContractStatus)}
-            disabled={fieldsLocked || permissions.canVerifyAgency}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select contract status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SIGNED">Signed</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="MISSING">Missing</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="commercialRegister">السجل التجاري (Commercial Register)</Label>
+            <Input
+              id="commercialRegister"
+              value={cr}
+              onChange={(event) => setCr(event.target.value)}
+              placeholder="Enter commercial register number"
+              disabled={fieldsLocked}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="taxId">الرقم الضريبي (Tax ID)</Label>
+            <Input
+              id="taxId"
+              value={tax}
+              onChange={(event) => setTax(event.target.value)}
+              placeholder="Enter tax ID"
+              disabled={fieldsLocked}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Contract Status</Label>
+            <Select
+              value={status}
+              onValueChange={(value) => setStatus(value as ContractStatus)}
+              disabled={fieldsLocked || permissions.canVerifyAgency}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select contract status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="SIGNED">Contract Signed</SelectItem>
+                <SelectItem value="PENDING">Contract Pending</SelectItem>
+                <SelectItem value="MISSING">Contract Missing</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {!uploadLocked && (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
-            <UploadCloud className="mx-auto h-8 w-8 text-slate-400" />
-            <p className="mt-3 text-center text-sm font-medium text-slate-700">
+          <div className="rounded-xl border border-dashed border-border bg-muted/50 p-6">
+            <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
+            <p className="mt-3 text-center text-sm font-medium text-foreground">
               Upload contract PDFs or Tax ID photos
             </p>
-            <p className="mt-1 text-center text-xs text-slate-500">
+            <p className="mt-1 text-center text-xs text-muted-foreground">
               Mock upload — metadata only until file storage is wired
             </p>
             <div className="mx-auto mt-4 flex max-w-md flex-col gap-3 sm:flex-row">
@@ -241,10 +248,11 @@ export function ComplianceVault({
                   <SelectItem value="OTHER">Other</SelectItem>
                 </SelectContent>
               </Select>
-              <Input ref={fileInputRef} type="file" className="flex-1" />
+              <Input ref={fileInputRef} type="file" className="min-h-11 flex-1" />
               <Button
                 type="button"
                 variant="outline"
+                className="min-h-11"
                 disabled={isPending}
                 onClick={handleMockUpload}
               >
@@ -255,18 +263,18 @@ export function ComplianceVault({
         )}
 
         {uploadLocked && permissions.isPrimaryOwner && agencyStatus === "ASSIGNED" && (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-100 p-8 text-center opacity-70">
-            <UploadCloud className="mx-auto h-8 w-8 text-slate-400" />
-            <p className="mt-3 text-sm text-slate-500">Upload zone locked</p>
+          <div className="rounded-xl border border-dashed border-border bg-muted p-8 text-center opacity-70">
+            <UploadCloud className="mx-auto h-8 w-8 text-muted-foreground" />
+            <p className="mt-3 text-sm text-muted-foreground">Upload zone locked</p>
           </div>
         )}
 
         {permissions.canEditComplianceFields && !permissions.canVerifyAgency && (
-          <div className="flex items-center gap-3">
-            <Button onClick={handleSave} disabled={isPending} className="bg-slate-950 hover:bg-slate-800">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={handleSave} disabled={isPending} className="min-h-11">
               {isPending ? "Saving…" : "Save Compliance Data"}
             </Button>
-            {message && <p className="text-sm text-emerald-600">{message}</p>}
+            {message && <p className="text-sm text-success">{message}</p>}
           </div>
         )}
 
@@ -275,7 +283,7 @@ export function ComplianceVault({
             <Button
               onClick={handleVerify}
               disabled={isPending || !cr.trim() || !tax.trim()}
-              className="bg-emerald-700 hover:bg-emerald-800"
+              className="min-h-11 bg-success text-success-foreground hover:bg-success/90"
             >
               {isPending ? "Verifying…" : "Verify & Complete"}
             </Button>
@@ -291,6 +299,7 @@ export function ComplianceVault({
                 <Button
                   type="button"
                   variant="outline"
+                  className="min-h-11"
                   disabled={isPending}
                   onClick={handleReturn}
                 >
@@ -298,7 +307,7 @@ export function ComplianceVault({
                 </Button>
               </div>
             )}
-            {message && <p className="text-sm text-rose-600">{message}</p>}
+            {message && <p className="text-sm text-destructive">{message}</p>}
           </div>
         )}
       </CardContent>

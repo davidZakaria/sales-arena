@@ -3,7 +3,6 @@
 import { MapPin } from "lucide-react";
 import { TypeBadge, AgencyStatusBadge } from "@/components/agency/badges";
 import { DirectAssignSelect } from "@/components/open-race/direct-assign-select";
-import { RequestAssignmentDialog } from "@/components/open-race/request-assignment-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 
 type SalesUser = { id: string; name: string; email: string };
@@ -14,7 +13,6 @@ type OpenRaceCardProps = {
   location: string | null;
   type: string | null;
   userRole: string;
-  hasPendingRequest: boolean;
   salesUsers: SalesUser[];
 };
 
@@ -24,20 +22,19 @@ export function OpenRaceCard({
   location,
   type,
   userRole,
-  hasPendingRequest,
   salesUsers,
 }: OpenRaceCardProps) {
   const isManager = userRole === "MANAGER" || userRole === "DIRECTOR";
   const isSales = userRole === "SALES";
 
   return (
-    <Card className="border-slate-200 transition hover:border-slate-300 hover:shadow-md">
+    <Card className="transition hover:border-primary/30">
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-lg font-semibold text-slate-950">{name}</h3>
-            <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
-              <MapPin className="h-4 w-4" />
+            <h3 className="text-lg font-semibold text-foreground">{name}</h3>
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 shrink-0" />
               {location ?? "Location TBD"}
             </div>
           </div>
@@ -49,12 +46,9 @@ export function OpenRaceCard({
 
         <div className="mt-6 space-y-3">
           {isSales && (
-            <RequestAssignmentDialog
-              agencyId={id}
-              agencyName={name}
-              pending={hasPendingRequest}
-              fullWidth
-            />
+            <p className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              Available for assignment — contact your manager to be assigned this agency.
+            </p>
           )}
           {isManager && (
             <DirectAssignSelect agencyId={id} salesUsers={salesUsers} />

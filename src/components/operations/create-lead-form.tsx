@@ -101,11 +101,11 @@ export function CreateLeadForm() {
             <Input id="whatsappLink" name="whatsappLink" placeholder="https://wa.me/2010..." />
           </div>
           {duplicate && (
-            <div className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-4">
-              <p className="text-sm font-medium text-amber-950">
+            <div className="sm:col-span-2 status-warning rounded-lg px-4 py-4">
+              <p className="text-sm font-medium">
                 This broker is already in the system.
               </p>
-              <p className="mt-1 text-sm text-amber-900">
+              <p className="mt-1 text-sm opacity-90">
                 {duplicate.name} ({duplicate.status})
                 {duplicate.primaryOwnerName
                   ? ` — assigned to ${duplicate.primaryOwnerName}`
@@ -118,24 +118,24 @@ export function CreateLeadForm() {
                   rel="noreferrer"
                   className={cn(
                     buttonVariants({ variant: "outline" }),
-                    "mt-3 inline-flex border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-50",
+                    "mt-3 inline-flex status-success",
                   )}
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Notify Broker
                 </a>
               ) : (
-                <p className="mt-3 text-xs text-amber-800">
+                <p className="mt-3 text-xs opacity-90">
                   No WhatsApp contact on file — cannot generate notify link.
                 </p>
               )}
             </div>
           )}
           {error && !duplicate && (
-            <p className="sm:col-span-2 text-sm text-rose-600">{error}</p>
+            <p className="sm:col-span-2 text-sm text-destructive">{error}</p>
           )}
           <div className="sm:col-span-2">
-            <Button type="submit" disabled={isPending} className="bg-slate-950 hover:bg-slate-800">
+            <Button type="submit" disabled={isPending} className="min-h-11">
               {isPending ? "Creating…" : "Create Draft Lead"}
             </Button>
           </div>

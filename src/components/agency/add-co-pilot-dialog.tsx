@@ -105,17 +105,12 @@ export function AddCoPilotDialog({
               </SelectContent>
             </Select>
           </div>
-          {error && <p className="text-sm text-rose-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button
-              type="button"
-              disabled={isPending}
-              className="bg-slate-950 hover:bg-slate-800"
-              onClick={handleAdd}
-            >
+            <Button type="button" disabled={isPending} onClick={handleAdd}>
               {isPending ? "Adding…" : "Add Co-Pilot"}
             </Button>
           </DialogFooter>

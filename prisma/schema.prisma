@@ -12,6 +12,7 @@ enum Role {
   MANAGER
   DIRECTOR
   OPERATIONS
+  FINANCE
 }
 
 enum AgencyStatus {
@@ -42,6 +43,19 @@ enum ComplianceDocumentType {
   OTHER
 }
 
+enum EOIStatus {
+  PENDING_FINANCE
+  VERIFIED
+  REJECTED
+  CONVERTED
+}
+
+enum InboundSource {
+  OPERATIONS
+  PUBLIC_PORTAL
+  WHATSAPP
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -60,6 +74,7 @@ model User {
   auditLogs            AuditLog[]
   assignmentRequests   AssignmentRequest[]
   complianceDocuments  ComplianceDocument[]
+  eois                 EOI[]
 
   @@index([managerId])
   @@index([role])
@@ -77,11 +92,14 @@ model Agency {
   status              AgencyStatus
   primaryOwnerId      String?
   createdById         String?
+  source              InboundSource  @default(OPERATIONS)
+  inboundNotes        String?
   contractStatus      ContractStatus
   isDisputed          Boolean        @default(false)
   claimedAt           DateTime?
   claimExpiresAt      DateTime?
   submittedForAuditAt DateTime?
+  brokerInviteToken   String         @unique @default(cuid())
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
@@ -91,16 +109,61 @@ model Agency {
   auditLogs           AuditLog[]
   assignmentRequests  AssignmentRequest[]
   complianceDocuments ComplianceDocument[]
+  eois                EOI[]
+  brokerContacts      BrokerContact[]
 
   @@index([status])
   @@index([primaryOwnerId])
   @@index([createdById])
+  @@index([source])
   @@index([contractStatus])
   @@index([claimExpiresAt])
   @@index([isDisputed])
   @@index([submittedForAuditAt])
   @@index([whatsappLink])
   @@index([repPhone1])
+}
+
+model EOI {
+  id              String    @id @default(cuid())
+  agencyId        String
+  userId          String
+  brokerContactId String?
+  clientName      String
+  project         String
+  amount          Float
+  paymentMethod   String
+  receiptUrl      String?
+  status          EOIStatus @default(PENDING_FINANCE)
+  financeNotes    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  agency        Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id])
+  brokerContact BrokerContact? @relation(fields: [brokerContactId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([agencyId])
+  @@index([userId])
+  @@index([brokerContactId])
+  @@index([createdAt])
+}
+
+model BrokerContact {
+  id        String   @id @default(cuid())
+  agencyId  String
+  name      String
+  phone     String
+  role      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  eois   EOI[]
+
+  @@index([agencyId])
+  @@index([phone])
 }
 
 model AssignmentRequest {

@@ -1,10 +1,14 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/routing";
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { Building2, LogOut, Search, UserRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Building2, LogOut, Menu, Search, UserRound } from "lucide-react";
+import { LocaleSwitcher } from "@/components/layout/locale-switcher";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { getRoleHomePath } from "@/lib/navigation/role-home";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   CommandDialog,
   CommandEmpty,
@@ -23,14 +27,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 type SearchResult = {
   users: Array<{ id: string; name: string; email: string; role: string }>;
   agencies: Array<{ id: string; name: string; location: string | null; type: string | null }>;
 };
 
-export function Topbar() {
+export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const router = useRouter();
+  const t = useTranslations("common");
+  const tNav = useTranslations("nav");
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -96,51 +103,76 @@ export function Topbar() {
     [router],
   );
 
+  const handleSignOut = useCallback(async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+    router.refresh();
+  }, [router]);
+
   return (
     <>
-      <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6">
+      <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-card px-3 sm:h-16 sm:gap-4 sm:px-6">
+        {onMenuClick && (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-11 w-11 shrink-0 lg:hidden"
+            onClick={onMenuClick}
+            aria-label={tNav("openMenu")}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
+
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex h-11 w-full max-w-xl items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 text-left text-sm text-slate-500 transition hover:border-slate-300 hover:bg-white"
+          className="flex h-11 min-w-0 flex-1 items-center gap-3 rounded-xl border border-border bg-muted/50 px-3 text-start text-sm text-muted-foreground transition hover:border-primary/30 hover:bg-card sm:max-w-xl sm:px-4"
+          aria-label={t("searchUsersAgencies")}
         >
           <Search className="h-4 w-4 shrink-0" />
-          <span className="flex-1">Search users and agencies…</span>
-          <kbd className="hidden rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-400 sm:inline">
+          <span className="hidden flex-1 truncate sm:inline">{t("searchUsersAgencies")}</span>
+          <kbd className="hidden rounded border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground md:inline">
             ⌘K
           </kbd>
         </button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            <Button variant="outline" className="gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <ThemeToggle />
+          <LocaleSwitcher />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(buttonVariants({ variant: "outline" }), "h-11 gap-2")}
+            >
               <UserRound className="h-4 w-4" />
               <span className="hidden sm:inline">{session?.user?.name}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>
-                <div className="flex flex-col">
-                  <span>{session?.user?.name}</span>
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {session?.user?.email}
-                  </span>
-                </div>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                className="text-rose-600 focus:text-rose-600"
-                onClick={() => signOut({ callbackUrl: "/login" })}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>
+                  <div className="flex flex-col">
+                    <span>{session?.user?.name}</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {session?.user?.email}
+                    </span>
+                  </div>
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                  onClick={() => void handleSignOut()}
+                >
+                  <LogOut className="me-2 h-4 w-4" />
+                  {t("signOut")}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       <CommandDialog
@@ -151,24 +183,24 @@ export function Topbar() {
             setQuery("");
           }
         }}
-        title="Omni Search"
+        title={t("omniSearch")}
         shouldFilter={false}
       >
         <CommandInput
-          placeholder="Search by name, email, or agency…"
+          placeholder={t("searchPlaceholder")}
           value={query}
           onValueChange={setQuery}
         />
         <CommandList>
           {loading ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
-              Searching…
+              {t("searching")}
             </div>
           ) : (
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>{t("noResults")}</CommandEmpty>
           )}
           {results.users.length > 0 && (
-            <CommandGroup heading="Users">
+            <CommandGroup heading={t("users")}>
               {results.users.map((user) => (
                 <CommandItem
                   key={user.id}
@@ -176,18 +208,18 @@ export function Topbar() {
                   onSelect={() =>
                     navigate(
                       user.id === session?.user?.id
-                        ? "/dashboard"
+                        ? getRoleHomePath(session?.user?.role)
                         : `/dashboard?user=${user.id}`,
                     )
                   }
                 >
-                  <UserRound className="mr-2 h-4 w-4" />
+                  <UserRound className="me-2 h-4 w-4" />
                   <div>
                     <p>{user.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {user.email}
                       {user.role !== "SALES" && (
-                        <span className="ml-1 uppercase">· {user.role}</span>
+                        <span className="ms-1 uppercase">· {user.role}</span>
                       )}
                     </p>
                   </div>
@@ -199,14 +231,14 @@ export function Topbar() {
             <CommandSeparator />
           )}
           {results.agencies.length > 0 && (
-            <CommandGroup heading="Agencies">
+            <CommandGroup heading={t("agencies")}>
               {results.agencies.map((agency) => (
                 <CommandItem
                   key={agency.id}
                   value={`${agency.name} ${agency.location ?? ""}`}
                   onSelect={() => navigate(`/agency/${agency.id}`)}
                 >
-                  <Building2 className="mr-2 h-4 w-4" />
+                  <Building2 className="me-2 h-4 w-4" />
                   <div>
                     <p>{agency.name}</p>
                     <p className="text-xs text-muted-foreground">

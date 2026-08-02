@@ -61,7 +61,7 @@ export function ArchiveAgencyButton({ agencyId, agencyName }: ArchiveAgencyButto
               and sales portfolios but kept in the system for audit purposes.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {error && <p className="text-sm text-rose-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
             <Button

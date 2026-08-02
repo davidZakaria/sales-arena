@@ -7,12 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/audit/create-audit-log";
 import { contactsMatch } from "@/lib/agency/normalize-contact";
 import {
-  isBlankSales,
-  normalizeBulkImportRows,
-  normalizeName,
-} from "@/lib/agency/bulk-import";
-import { canCreateAgency, canPublishToOpenRace } from "@/lib/agency/permissions";
-import { buildClaimExpiry } from "@/lib/claims/helpers";
+  createInboundDraftLead,
+  type DuplicateAgencyError,
+} from "@/lib/agency/inbound-lead";
 
 function revalidateOpsPaths(agencyId?: string) {
   revalidatePath("/operations");
@@ -29,35 +26,17 @@ async function requireOperations() {
   return session;
 }
 
-export type DuplicateAgencyError = {
-  error: "DUPLICATE";
-  message: string;
-  existingAgency: {
-    id: string;
-    name: string;
-    status: string;
-    primaryOwnerName: string | null;
-    whatsappLink: string | null;
-    repPhone1: string | null;
-  };
-};
+import {
+  isBlankSales,
+  normalizeBulkImportRows,
+  normalizeName,
+} from "@/lib/agency/bulk-import";
+import { canCreateAgency, canPublishToOpenRace } from "@/lib/agency/permissions";
+import { buildClaimExpiry } from "@/lib/claims/helpers";
+import { findDuplicateAgency } from "@/lib/agency/inbound-lead";
 
-export async function findDuplicateAgency(
-  repPhone1: string | null,
-  whatsappLink: string | null,
-  excludeId?: string,
-) {
-  const agencies = await prisma.agency.findMany({
-    where: excludeId ? { id: { not: excludeId } } : undefined,
-    include: {
-      primaryOwner: { select: { name: true } },
-    },
-  });
-
-  return agencies.find((agency) =>
-    contactsMatch(repPhone1, whatsappLink, agency.repPhone1, agency.whatsappLink),
-  );
-}
+export type { DuplicateAgencyError };
+export { findDuplicateAgency };
 
 export async function createAgencyDraft(data: {
   name: string;
@@ -68,41 +47,19 @@ export async function createAgencyDraft(data: {
 }) {
   const session = await requireOperations();
 
-  const repPhone1 = data.repPhone1?.trim() || null;
-  const whatsappLink = data.whatsappLink?.trim() || null;
-
-  const duplicate = await findDuplicateAgency(repPhone1, whatsappLink);
-  if (duplicate) {
-    throw new Error(
-      JSON.stringify({
-        error: "DUPLICATE",
-        message: "This broker is already in the system.",
-        existingAgency: {
-          id: duplicate.id,
-          name: duplicate.name,
-          status: duplicate.status,
-          primaryOwnerName: duplicate.primaryOwner?.name ?? null,
-          whatsappLink: duplicate.whatsappLink,
-          repPhone1: duplicate.repPhone1,
-        },
-      } satisfies DuplicateAgencyError),
-    );
-  }
-
-  const agency = await prisma.agency.create({
-    data: {
-      name: data.name.trim(),
-      type: data.type?.trim() || null,
-      location: data.location?.trim() || null,
-      repPhone1,
-      whatsappLink,
-      status: "DRAFT",
-      createdById: session.user.id,
-      contractStatus: "MISSING",
-    },
+  const agency = await createInboundDraftLead({
+    name: data.name,
+    type: data.type,
+    location: data.location,
+    repPhone1: data.repPhone1,
+    whatsappLink: data.whatsappLink,
+    source: "OPERATIONS",
+    createdById: session.user.id,
+    auditUserId: session.user.id,
+    auditUserName: session.user.name ?? "Operations",
+    exposeDuplicateDetails: true,
   });
 
-  await createAuditLog(agency.id, session.user.id, `${session.user.name} created draft lead`);
   revalidateOpsPaths(agency.id);
   return agency.id;
 }

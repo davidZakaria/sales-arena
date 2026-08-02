@@ -12,7 +12,6 @@ import {
 } from "@/lib/agency/ownership";
 import { REQUIRED_DOCUMENT_TYPES } from "@/lib/agency/normalize-contact";
 import { getAgencyPermissions, canArchiveAgency } from "@/lib/agency/permissions";
-import { requestAssignment } from "@/lib/actions/assignment";
 
 function revalidateAgencyPaths(agencyId: string) {
   revalidatePath("/open-race");
@@ -145,30 +144,51 @@ export async function uploadComplianceDocument(
     const types = new Set(docs.map((d) => d.documentType));
     const complete = REQUIRED_DOCUMENT_TYPES.every((t) => types.has(t));
 
+    const agencyUpdate: {
+      status?: "PENDING_AUDIT";
+      submittedForAuditAt?: Date;
+      claimExpiresAt?: null;
+      contractStatus?: "PENDING";
+    } = {};
+
+    if (documentType === "CONTRACT") {
+      agencyUpdate.contractStatus = "PENDING";
+    }
+
     if (complete) {
+      agencyUpdate.status = "PENDING_AUDIT";
+      agencyUpdate.submittedForAuditAt = new Date();
+      agencyUpdate.claimExpiresAt = null;
+      if (documentType !== "CONTRACT") {
+        agencyUpdate.contractStatus = "PENDING";
+      }
+    }
+
+    if (Object.keys(agencyUpdate).length > 0) {
       await tx.agency.update({
         where: { id: agencyId },
-        data: {
-          status: "PENDING_AUDIT",
-          submittedForAuditAt: new Date(),
-          claimExpiresAt: null,
-        },
+        data: agencyUpdate,
       });
+    }
+
+    if (complete) {
       await createAuditLog(
         agencyId,
         session.user.id,
         `${session.user.name} submitted all documents for Operations audit`,
         tx,
       );
+    } else if (documentType === "CONTRACT") {
+      await createAuditLog(
+        agencyId,
+        session.user.id,
+        `${session.user.name} uploaded contract — status set to Contract Pending`,
+        tx,
+      );
     }
   });
 
   revalidateAgencyPaths(agencyId);
-}
-
-/** @deprecated Use requestAssignment instead */
-export async function claimAgency(agencyId: string) {
-  return requestAssignment(agencyId);
 }
 
 export async function addCoOwner(agencyId: string, newUserId: string) {

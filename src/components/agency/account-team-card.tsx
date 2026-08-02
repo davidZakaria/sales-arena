@@ -71,42 +71,42 @@ export function AccountTeamCard({
         )}
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        <div className="rounded-lg border border-border bg-muted/50 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Primary Owner
           </p>
-          <p className="mt-1 font-medium text-slate-900">
+          <p className="mt-1 font-medium text-foreground">
             👑 {primaryOwner?.name ?? "Unassigned"}
           </p>
           {primaryOwner?.email && (
-            <p className="text-xs text-slate-500">{primaryOwner.email}</p>
+            <p className="text-xs text-muted-foreground">{primaryOwner.email}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Co-Pilots
           </p>
           {coOwners.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-slate-200 p-4 text-slate-500">
+            <p className="rounded-lg border border-dashed border-border p-4 text-muted-foreground">
               No co-pilots assigned yet.
             </p>
           ) : (
             coOwners.map((coOwner) => (
               <div
                 key={coOwner.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3"
+                className="flex items-start justify-between gap-3 rounded-lg border border-border bg-card p-3"
               >
                 <div>
-                  <p className="font-medium text-slate-900">🤝 {coOwner.name}</p>
-                  <p className="text-xs text-slate-500">{coOwner.email}</p>
+                  <p className="font-medium text-foreground">🤝 {coOwner.name}</p>
+                  <p className="text-xs text-muted-foreground">{coOwner.email}</p>
                 </div>
                 {permissions.canManageCoOwners && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 shrink-0 text-slate-400 hover:text-rose-600"
+                    className="h-11 w-11 shrink-0 text-muted-foreground hover:text-destructive sm:h-8 sm:w-8"
                     disabled={isPending && removingId === coOwner.id}
                     onClick={() => handleRemove(coOwner.id)}
                     aria-label={`Remove ${coOwner.name} as co-pilot`}
@@ -123,7 +123,7 @@ export function AccountTeamCard({
           <DisputeAccessButton agencyId={agencyId} agencyName={agencyName} />
         )}
 
-        {error && <p className="text-sm text-rose-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
     </Card>
   );

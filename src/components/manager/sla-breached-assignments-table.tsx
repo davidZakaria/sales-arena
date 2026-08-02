@@ -21,7 +21,7 @@ export type SlaBreachedRow = {
 export function SlaBreachedAssignmentsTable({ agencies }: { agencies: SlaBreachedRow[] }) {
   if (agencies.length === 0) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-muted-foreground">
         No SLA breaches. Reps are uploading documents within the 14-day window.
       </p>
     );
@@ -32,7 +32,7 @@ export function SlaBreachedAssignmentsTable({ agencies }: { agencies: SlaBreache
       <TableHeader>
         <TableRow>
           <TableHead>Agency</TableHead>
-          <TableHead>Assigned Rep</TableHead>
+          <TableHead className="hidden sm:table-cell">Assigned Rep</TableHead>
           <TableHead>Days Overdue</TableHead>
         </TableRow>
       </TableHeader>
@@ -42,14 +42,19 @@ export function SlaBreachedAssignmentsTable({ agencies }: { agencies: SlaBreache
             <TableCell>
               <Link
                 href={`/agency/${agency.id}`}
-                className="font-medium text-slate-900 hover:underline"
+                className="font-medium text-foreground hover:underline"
               >
                 {agency.name}
               </Link>
-              <p className="text-xs text-slate-500">{agency.location}</p>
+              <p className="text-xs text-muted-foreground">{agency.location}</p>
+              <p className="mt-1 text-xs text-muted-foreground sm:hidden">
+                {agency.primaryOwnerName ?? "Unassigned"}
+              </p>
             </TableCell>
-            <TableCell>{agency.primaryOwnerName ?? "Unassigned"}</TableCell>
-            <TableCell className="font-medium text-rose-700">
+            <TableCell className="hidden sm:table-cell">
+              {agency.primaryOwnerName ?? "Unassigned"}
+            </TableCell>
+            <TableCell className="font-medium text-destructive">
               {agency.daysOverdue} day{agency.daysOverdue === 1 ? "" : "s"}
             </TableCell>
           </TableRow>
