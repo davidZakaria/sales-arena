@@ -68,23 +68,20 @@ export function SidebarNav({ badges = {}, onNavigate, className }: SidebarNavPro
   } else {
     navItems = [
       { href: "/dashboard", labelKey: "dashboard", icon: LayoutDashboard },
-      { href: "/portfolio", labelKey: "portfolio", icon: Briefcase },
+      {
+        href: "/portfolio",
+        labelKey: "portfolio",
+        icon: Briefcase,
+        badge: role === "SALES" ? badges.assignedInquiryCount : undefined,
+      },
     ];
 
     if (role === "SALES") {
-      navItems.push(
-        {
-          href: "/portfolio",
-          labelKey: "portfolio",
-          icon: Briefcase,
-          badge: badges.assignedInquiryCount,
-        },
-        {
-          href: "/inventory",
-          labelKey: "inventoryLibrary",
-          icon: Package,
-        },
-      );
+      navItems.push({
+        href: "/inventory",
+        labelKey: "inventoryLibrary",
+        icon: Package,
+      });
     }
 
     if (role === "MANAGER" || role === "DIRECTOR") {
