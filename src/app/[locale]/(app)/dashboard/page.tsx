@@ -29,6 +29,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageTitleRow } from "@/components/layout/page-title-row";
+import {
+  managerQuickGuide,
+  salesQuickGuide,
+} from "@/lib/navigation/role-quick-guides";
 
 const ACTION_STATUS_KEYS: Record<string, string> = {
   ASSIGNED: "uploadCompliance",
@@ -157,39 +162,43 @@ export default async function DashboardPage({
     },
   ];
 
+  const dashboardGuide =
+    viewerRole === "MANAGER" || viewerRole === "DIRECTOR"
+      ? managerQuickGuide
+      : salesQuickGuide;
+
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{t("title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("subtitle", { name: subjectName })}
-          </p>
-        </div>
-        {viewingOtherUser && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="status-neutral">
-              {tCommon("managerView")}
-            </Badge>
-            <Link
-              href="/dashboard"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "gap-2",
-              )}
-            >
-              <X className="h-4 w-4" />
-              {tCommon("backToMyDashboard")}
-            </Link>
-            <Link
-              href={`/portfolio?user=${subjectUserId}`}
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
-              {tCommon("viewPortfolio")}
-            </Link>
-          </div>
-        )}
-      </div>
+      <PageTitleRow
+        title={t("title")}
+        subtitle={t("subtitle", { name: subjectName })}
+        guide={dashboardGuide}
+        actions={
+          viewingOtherUser ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="status-neutral">
+                {tCommon("managerView")}
+              </Badge>
+              <Link
+                href="/dashboard"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "gap-2",
+                )}
+              >
+                <X className="h-4 w-4" />
+                {tCommon("backToMyDashboard")}
+              </Link>
+              <Link
+                href={`/portfolio?user=${subjectUserId}`}
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                {tCommon("viewPortfolio")}
+              </Link>
+            </div>
+          ) : undefined
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {metrics.map((metric) => (

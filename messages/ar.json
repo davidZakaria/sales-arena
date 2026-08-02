@@ -133,6 +133,10 @@
     "disputed": "متنازع عليه",
     "financeReadOnly": "المالية — قراءة فقط"
   },
+  "quickGuide": {
+    "openLabel": "دليل الدور السريع",
+    "tasksHeading": "المهام الأساسية"
+  },
   "dashboard": {
     "title": "لوحة التحكم",
     "subtitle": "نظرة عامة على خط الأنابيب لـ {name}",

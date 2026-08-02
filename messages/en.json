@@ -133,6 +133,10 @@
     "disputed": "Disputed",
     "financeReadOnly": "Finance — read only"
   },
+  "quickGuide": {
+    "openLabel": "Role quick guide",
+    "tasksHeading": "Core tasks"
+  },
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Pipeline overview for {name}",

@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { EoiClearanceTable } from "@/components/finance/eoi-clearance-table";
 import { FinanceSummaryCards } from "@/components/finance/finance-summary-cards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageTitleRow } from "@/components/layout/page-title-row";
+import { financeQuickGuide } from "@/lib/navigation/role-quick-guides";
 
 export default async function FinancePage() {
   const session = await getServerSession(authOptions);
@@ -52,12 +54,7 @@ export default async function FinancePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          {t("title")}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
-      </div>
+      <PageTitleRow title={t("title")} subtitle={t("subtitle")} guide={financeQuickGuide} />
 
       <FinanceSummaryCards
         pendingCount={countByStatus.PENDING_FINANCE ?? 0}

@@ -19,6 +19,8 @@ import { ManagerLeadAssignmentTable } from "@/components/manager/manager-lead-as
 import { LiveInquiriesQueue } from "@/components/manager/live-inquiries-queue";
 import { getNewInquiries } from "@/lib/inquiry/queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageTitleRow } from "@/components/layout/page-title-row";
+import { managerQuickGuide } from "@/lib/navigation/role-quick-guides";
 import {
   Table,
   TableBody,
@@ -160,12 +162,7 @@ export default async function ManagerPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-          {t("title")}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
-      </div>
+      <PageTitleRow title={t("title")} subtitle={t("subtitle")} guide={managerQuickGuide} />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="metric-info">
