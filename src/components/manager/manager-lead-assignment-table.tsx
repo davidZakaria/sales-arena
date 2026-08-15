@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { directAssignAgency } from "@/lib/actions/assignment";
 import { InboundSourceBadge } from "@/components/agency/inbound-source-badge";
+import { AgencyShortCodeLabel } from "@/components/agency/agency-short-code";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,6 +30,7 @@ import { cn } from "@/lib/utils";
 export type ManagerLeadRow = {
   id: string;
   name: string;
+  shortCode: string | null;
   location: string | null;
   type: string | null;
   source: import("@/generated/prisma/client").InboundSource;
@@ -114,7 +116,8 @@ function LeadAssignRow({
           href={`/agency/${lead.id}`}
           className="font-medium text-foreground hover:underline"
         >
-          {lead.name}
+          {lead.name}{" "}
+          <AgencyShortCodeLabel shortCode={lead.shortCode} className="text-xs" />
         </Link>
         <div className="mt-1 sm:hidden">
           <InboundSourceBadge source={lead.source} />

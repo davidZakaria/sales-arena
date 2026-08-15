@@ -92,6 +92,7 @@ model User {
 model Agency {
   id                  String         @id @default(cuid())
   name                String
+  shortCode           String?        @unique
   type                String?
   commercialRegister  String?
   taxId               String?

@@ -10,6 +10,7 @@ import {
   ContractStatusBadge,
   TypeBadge,
 } from "@/components/agency/badges";
+import { AgencyShortCodeCopyButton, AgencyShortCodeLabel } from "@/components/agency/agency-short-code";
 import { ArchiveAgencyButton } from "@/components/agency/archive-agency-button";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,8 @@ export default async function AgencyPage({
             <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
               {agency.name}
             </h1>
+            <AgencyShortCodeLabel shortCode={agency.shortCode} />
+            <AgencyShortCodeCopyButton shortCode={agency.shortCode} />
             <TypeBadge type={agency.type} />
             <AgencyStatusBadge status={agency.status} />
             <ContractStatusBadge status={agency.contractStatus} />

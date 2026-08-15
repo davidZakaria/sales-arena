@@ -15,6 +15,7 @@ import {
 } from "@/lib/inquiry/queries";
 import { redirectIfSpecialistRole } from "@/lib/navigation/role-home";
 import { InquiriesTable } from "@/components/inquiries/inquiries-table";
+import { AgencyShortCodeLabel } from "@/components/agency/agency-short-code";
 import { PortfolioRoleBadge } from "@/components/agency/portfolio-role-badge";
 import { AgencyStatusBadge, ContractStatusBadge, TypeBadge } from "@/components/agency/badges";
 import { Badge } from "@/components/ui/badge";
@@ -233,7 +234,10 @@ export default async function PortfolioPage({
                   <Card className="h-full transition hover:border-primary/30">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-lg">{agency.name}</CardTitle>
+                        <CardTitle className="text-lg">
+                          {agency.name}{" "}
+                          <AgencyShortCodeLabel shortCode={agency.shortCode} className="text-xs" />
+                        </CardTitle>
                         <TypeBadge type={agency.type} />
                       </div>
                     </CardHeader>

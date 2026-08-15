@@ -62,6 +62,7 @@ async function getUnassignedLeads() {
     select: {
       id: true,
       name: true,
+      shortCode: true,
       location: true,
       type: true,
       source: true,
