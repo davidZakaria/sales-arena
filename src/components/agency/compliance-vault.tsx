@@ -186,6 +186,9 @@ export function ComplianceVault({
           )}
         </div>
         <CardDescription>{t("complianceDescription")}</CardDescription>
+        {permissions.role === "operations" && agencyStatus === "ASSIGNED" && (
+          <p className="text-sm text-muted-foreground">{t("opsComplianceMaintenanceHint")}</p>
+        )}
         {waitingForAudit && (
           <p className="text-sm font-medium text-warning">{t("waitingForAudit")}</p>
         )}
@@ -270,7 +273,15 @@ export function ComplianceVault({
           </div>
         </div>
 
-        {permissions.canVerifyAgency && (
+        {uploadLocked && !permissions.canUploadDocuments && agencyStatus === "ASSIGNED" && (
+          <p className="rounded-lg bg-muted/50 px-4 py-3 text-center text-sm text-muted-foreground">
+            {permissions.role === "operations"
+              ? t("uploadOpsLockedHint")
+              : t("uploadReadOnlyHint")}
+          </p>
+        )}
+
+        {(permissions.canEditComplianceFields || permissions.canVerifyAgency) && (
           <div className="grid gap-4 border-t border-border pt-6 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="commercialRegister">{t("commercialRegisterLabel")}</Label>
@@ -279,6 +290,7 @@ export function ComplianceVault({
                 value={cr}
                 onChange={(event) => setCr(event.target.value)}
                 placeholder={t("enterCommercialRegister")}
+                disabled={!permissions.canEditComplianceFields || isPending}
               />
             </div>
             <div className="space-y-2">
@@ -288,13 +300,15 @@ export function ComplianceVault({
                 value={tax}
                 onChange={(event) => setTax(event.target.value)}
                 placeholder={t("enterTaxId")}
+                disabled={!permissions.canEditComplianceFields || isPending}
               />
             </div>
             <div className="space-y-2">
               <Label>{t("contractStatusLabel")}</Label>
               <Select
                 value={status}
-                onValueChange={(value) => setStatus(value as ContractStatus)}
+                onValueChange={(value) => value && setStatus(value as ContractStatus)}
+                disabled={!permissions.canEditComplianceFields || isPending}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={t("selectContractStatus")} />

@@ -133,21 +133,24 @@ export function getAgencyPermissions(
   }
 
   if (isOperations) {
+    const canMaintainAssigned = agency.status === "ASSIGNED";
+    const isAudit = agency.status === "PENDING_AUDIT";
+
     return {
       role: "operations",
       canView: true,
-      canEditComplianceFields: agency.status === "PENDING_AUDIT",
-      canUploadDocuments: false,
+      canEditComplianceFields: canMaintainAssigned || isAudit,
+      canUploadDocuments: canMaintainAssigned,
       canManageCoOwners: false,
       canDispute: false,
-      canVerifyAgency: agency.status === "PENDING_AUDIT",
-      canReturnForRevision: agency.status === "PENDING_AUDIT",
+      canVerifyAgency: isAudit,
+      canReturnForRevision: isAudit,
       ...eoiFlags,
       canSubmitEOI: false,
       ...brokerContactFlags,
       canManageBrokerContacts: false,
       ...base,
-      isAuditMode: agency.status === "PENDING_AUDIT",
+      isAuditMode: isAudit,
     };
   }
 

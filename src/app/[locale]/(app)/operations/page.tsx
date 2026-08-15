@@ -54,6 +54,16 @@ export default async function OperationsPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="pipeline">{t("tabPipeline")}</TabsTrigger>
+          <TabsTrigger value="compliance">
+            {t("tabCompliance")}
+            {data.complianceWatch.length > 0 && (
+              <span className="ms-2 rounded-full status-warning px-2 py-0.5 text-xs">
+                {data.complianceWatch.length > 999
+                  ? "999+"
+                  : data.complianceWatch.length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="activity">{tAgency("activityLog")}</TabsTrigger>
         </TabsList>
 
@@ -70,8 +80,8 @@ export default async function OperationsPage() {
           )}
 
           <div className="grid gap-6 xl:grid-cols-2">
-            <OperationsOpenRaceTable agencies={data.openRace} compact />
-            <OperationsComplianceWatchTable rows={data.complianceWatch} />
+            <OperationsOpenRaceTable agencies={data.openRace} compact showToolbar={false} />
+            <OperationsComplianceWatchTable rows={data.complianceWatch} compact showToolbar={false} />
           </div>
         </TabsContent>
 
@@ -87,6 +97,9 @@ export default async function OperationsPage() {
 
         <TabsContent value="pipeline" className="mt-4 space-y-6">
           <OperationsOpenRaceTable agencies={data.openRace} />
+        </TabsContent>
+
+        <TabsContent value="compliance" className="mt-4">
           <OperationsComplianceWatchTable rows={data.complianceWatch} />
         </TabsContent>
 

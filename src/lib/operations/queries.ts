@@ -31,6 +31,7 @@ export type OperationsAuditRow = {
 export type OperationsOpenRaceRow = {
   id: string;
   name: string;
+  shortCode: string | null;
   location: string | null;
   type: string | null;
   source: InboundSource;
@@ -41,6 +42,7 @@ export type OperationsOpenRaceRow = {
 export type OperationsComplianceWatchRow = {
   id: string;
   name: string;
+  shortCode: string | null;
   location: string | null;
   primaryOwner: { name: string } | null;
   contractStatus: string;
@@ -134,6 +136,7 @@ export async function getOperationsDashboardData(): Promise<OperationsDashboardD
       select: {
         id: true,
         name: true,
+        shortCode: true,
         location: true,
         type: true,
         source: true,
@@ -203,6 +206,7 @@ export async function getOperationsDashboardData(): Promise<OperationsDashboardD
       return {
         id: agency.id,
         name: agency.name,
+        shortCode: agency.shortCode,
         location: agency.location,
         primaryOwner: agency.primaryOwner,
         contractStatus: agency.contractStatus,

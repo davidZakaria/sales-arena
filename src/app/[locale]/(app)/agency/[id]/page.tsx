@@ -193,6 +193,26 @@ export default async function AgencyPage({
                   <p className="text-muted-foreground">{agency.location ?? "Not provided"}</p>
                 </div>
               </div>
+              {(agency.taxId || agency.commercialRegister) && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 h-4 w-4" />
+                    <div>
+                      <p className="font-medium text-foreground">Tax ID</p>
+                      <p className="text-muted-foreground">{agency.taxId ?? "Not provided"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 h-4 w-4" />
+                    <div>
+                      <p className="font-medium text-foreground">Commercial Register</p>
+                      <p className="text-muted-foreground">
+                        {agency.commercialRegister ?? "Not provided"}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 h-4 w-4" />
                 <div>
